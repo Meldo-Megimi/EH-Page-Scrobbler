@@ -165,7 +165,7 @@ const addPageScrobbler = () => {
     </div>
     <div class="bar-labels">
       <div class="bar-max">${maxGID}</div>
-      <div class="bar-min">1</div
+      <div class="bar-min">1</div>
     </div>
     <div class="bar-labels">
 
