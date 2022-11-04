@@ -167,9 +167,6 @@ const addPageScrobbler = () => {
       <div class="bar-max">${maxGID}</div>
       <div class="bar-min">1</div>
     </div>
-    <div class="bar-labels">
-
-    </div>
   </div>
 </div>`;
         hook.insertAdjacentHTML("beforebegin", el1);
