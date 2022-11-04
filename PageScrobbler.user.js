@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler
-// @version      2022.11.03.4
+// @version      2022.11.03.5
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Meldo-Megimi
 // @license      MIT
@@ -188,9 +188,9 @@ const showBookmark = GID => {
         } else {
             document.getElementById('current_bookmark').innerHTML = "No bookmark found for this search.";
         }
-        document.querySelectorAll('.search-save-button').forEach(function(key){key.style.visibility='visible';});
+        document.querySelectorAll('.search-save-button').forEach(function(key){key.style.display='';});
     } else {
-        document.querySelectorAll('.search-save-button').forEach(function(key){key.style.visibility='collapse';});
+        document.querySelectorAll('.search-save-button').forEach(function(key){key.style.display='none';});
     }
 
     if (localStorage.length > 1)
@@ -211,11 +211,11 @@ const showBookmark = GID => {
             }
         });
 
-        document.querySelectorAll('.search-list').forEach(function(key){key.style.visibility='visible';});
-        document.querySelectorAll('.search-load-button').forEach(function(key){key.style.visibility='visible';});
+        document.querySelectorAll('.search-list').forEach(function(key){key.style.display='';});
+        document.querySelectorAll('.search-load-button').forEach(function(key){key.style.display='';});
     } else {
-        document.querySelectorAll('.search-list').forEach(function(key){key.style.visibility='collapse';});
-        document.querySelectorAll('.search-load-button').forEach(function(key){key.style.visibility='collapse';});
+        document.querySelectorAll('.search-list').forEach(function(key){key.style.display='none';});
+        document.querySelectorAll('.search-load-button').forEach(function(key){key.style.display='none';});
     }
 }
 
@@ -247,7 +247,17 @@ unsafeWindow.saveCurrentGID = function () {
 
             showBookmark();
         } else {
-            document.getElementById('save_load_text').innerHTML = "No next or prev, can't save";
+            let next;
+            if (!!document.querySelector(".itg tr .glname a")) { // Minimal and Compact
+                next = document.querySelector(".itg tr:nth-child(2) .glname a").href.match(/\/(\d+)\//)?.[1];
+            } else if (!!document.querySelector(".itg tr a")) { // Extended
+                next = document.querySelector(".itg tr:first-child a").href.match(/\/(\d+)\//)?.[1];
+            } else { // Thumbnail
+                next = document.querySelector(".itg .gl1t:first-child a").href.match(/\/(\d+)\//)?.[1];
+            }
+            localStorage.setItem(f_search, "&next=" + (parseInt(next,10)+1));
+
+            showBookmark();
         }
     }
 }
