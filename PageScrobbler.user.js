@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.04.2
+// @version      2022.11.04.3
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -13,7 +13,7 @@
 
 const stylesheet = `
 .search-scrobbler {
-  width: 800px;
+  width: 730px;
   outline: 1px cyan dashed;
   margin: 0 auto;
   padding: 20px 0 0 0;
@@ -23,7 +23,7 @@ const stylesheet = `
 }
 .search-scrobbler .bar {
   display: block;
-  width: 800px;
+  width: 730px;
   height: 25px;
   border: 1px solid red;
   box-sizing: border-box;
@@ -61,7 +61,7 @@ const stylesheet = `
 }
 
 .saved-search {
-  width: 800px;
+  width: 730px;
   margin: 0 auto;
 }
 `;
@@ -159,8 +159,8 @@ const addPageScrobbler = () => {
             document.querySelector(".bar-hover")?.remove();
 
             const maxGID = localStorage.getItem("EHPS-maxGID");
-            const width = 800;
-            const hoverGID = ((1.0 - offset / 800) * maxGID).toFixed(0);
+            const width = 730;
+            const hoverGID = ((1.0 - offset / 730) * maxGID).toFixed(0);
 
             const url = new URL(location.href);
             url.searchParams.set("next", hoverGID);
