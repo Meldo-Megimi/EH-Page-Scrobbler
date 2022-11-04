@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.03.6
+// @version      2022.11.04.1
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -102,6 +102,9 @@ const tryUpdateKnownMaxGID = GID => {
 }
 
 const addPageScrobbler = () => {
+    const url = new URL(location.href);
+    if (url.pathname == "/popular") return;
+
     const insertInitialElement = () => {
         const hook = document.querySelector(".searchnav");
 
@@ -148,7 +151,6 @@ const addPageScrobbler = () => {
   <span id="current_bookmark"></span>&nbsp&nbsp&nbsp<span id="save_load_text"></span>
 </div>`;
         hook.insertAdjacentHTML("beforebegin", el2);
-
     }
 
     const addEventListeners = () => {
@@ -168,7 +170,6 @@ const addPageScrobbler = () => {
 <a class="bar-hover" href="${url}" style="left: ${offset - 2}px; width: 2px">
   <div class="bar-hovertext">${hoverGID}</div>
 </a>`;
-
             hook.insertAdjacentHTML("afterbegin", el);
         }
 
@@ -223,7 +224,6 @@ const showBookmark = GID => {
         document.querySelectorAll('.search-load-button').forEach(function(key){key.style.display='none';});
     }
 }
-
 
 const main = () => {
     if (!hasGalleryListTable()) return;
