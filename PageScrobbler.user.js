@@ -25,13 +25,13 @@ const stylesheet = `
   display: block;
   width: 730px;
   height: 25px;
-  border: 1px solid red;
+  border: 2px solid #3c3c3c;
   box-sizing: border-box;
   position: relative;
 }
 .search-scrobbler .bar .bar-cursor {
   height: 100%;
-  background: #0f0;
+  background: #5FA9CF;
 }
 .search-scrobbler .bar-wrapper {
   display: flex;
@@ -117,7 +117,11 @@ const getMaxGID = doc => {
     } else { // Thumbnail
         maxGID = doc.querySelector(".itg .gl1t:first-child a").href.match(/\/(\d+)\//)?.[1];
     }
-    localStorage.setItem("EHPS-maxGID", maxGID);
+
+    let currentMaxGID = localStorage.getItem("EHPS-maxGID");
+    if ((currentMaxGID === null) || (currentMaxGID < maxGID)) {
+        localStorage.setItem("EHPS-maxGID", maxGID);
+    }
 }
 
 const tryUpdateKnownMaxGID = GID => {
@@ -125,6 +129,8 @@ const tryUpdateKnownMaxGID = GID => {
 
     const url = new URL(location.href);
     if ((url.pathname !== "/") || (url.search !== "")) {
+        if (url.pathname == "/popular") return;
+
         // not on frontpage or searching
         fetch(location.origin, {
             method: 'get'
@@ -181,9 +187,11 @@ const updatePageScrobbler = () => {
         } else if (!!document.querySelector(".itg tr a")) { // Extended
             firstGID = parseInt(document.querySelector(".itg tr:first-child a").href.match(/\/(\d+)\//)?.[1],10);
             lastGID = parseInt(document.querySelector(".itg tr:last-child a").href.match(/\/(\d+)\//)?.[1],10);
-        } else { // Thumbnail
+        } else if (!!document.querySelector(".itg .gl1t a")) { // Thumbnail
             firstGID = parseInt(document.querySelector(".itg .gl1t:first-child a").href.match(/\/(\d+)\//)?.[1],10);
             lastGID = parseInt(document.querySelector(".itg .gl1t:last-child a").href.match(/\/(\d+)\//)?.[1],10);
+        } else {
+            return;
         }
 
         if (maxGID < firstGID) {
@@ -242,7 +250,7 @@ ${yearDiv}
         }
 
         const el = document.querySelector(".bar-full .bar");
-        el.addEventListener("mousemove", handler);
+        if (el !== null) el.addEventListener("mousemove", handler);
     }
 
     updateInitialElement();
@@ -250,6 +258,9 @@ ${yearDiv}
 }
 
 const showBookmark = GID => {
+    const url = new URL(location.href);
+    if (url.pathname == "/popular") return;
+
     let searchParams = new URLSearchParams(window.location.search);
     if (searchParams.has('f_search')) {
         let gid = localStorage.getItem(searchParams.get('f_search'));
