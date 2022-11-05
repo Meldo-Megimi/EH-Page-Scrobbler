@@ -124,8 +124,39 @@ const addPageScrobbler = () => {
         let cursorWidth = ((firstGID - lastGID) / maxGID) * 100;
         if (cursorWidth < 0.2) cursorWidth = 0.2;
 
+        const margin2021 = (1.0 - 2100270 / maxGID) * 100;
+        const margin2020 = (1.0 - 1813647 / maxGID) * 100;
+        const margin2019 = (1.0 - 1543397 / maxGID) * 100;
+        const margin2018 = (1.0 - 1338484 / maxGID) * 100;
+        const margin2017 = (1.0 - 1162942 / maxGID) * 100;
+        const margin2016 = (1.0 - 1012224 / maxGID) * 100;
+        const margin2015 = (1.0 - 888870 / maxGID) * 100;
+        const margin2014 = (1.0 - 771830 / maxGID) * 100;
+        const margin2013 = (1.0 - 660230 / maxGID) * 100;
+        const margin2012 = (1.0 - 553117 / maxGID) * 100;
+        const margin2011 = (1.0 - 449183 / maxGID) * 100;
+        const margin2010 = (1.0 - 321076 / maxGID) * 100;
+        const margin2009 = (1.0 - 190496 / maxGID) * 100;
+        const margin2008 = (1.0 - 74629 / maxGID) * 100;
+
         const el1 = `
 <div class="search-scrobbler">
+    <div style="position:absolute; width:inherit">
+      <div style="position:absolute; left: ${margin2021}% ">|2021</div>
+      <div style="position:absolute; left: ${margin2020}% ">|2020</div>
+      <div style="position:absolute; left: ${margin2019}% ">|2019</div>
+      <div style="position:absolute; left: ${margin2018}% ">|2018</div>
+      <div style="position:absolute; left: ${margin2017}% ">|2017</div>
+      <div style="position:absolute; left: ${margin2016}% ">|2016</div>
+      <div style="position:absolute; left: ${margin2015}% ">|2015</div>
+      <div style="position:absolute; left: ${margin2014}% ">|2014</div>
+      <div style="position:absolute; left: ${margin2013}% ">|2013</div>
+      <div style="position:absolute; left: ${margin2012}% ">|2012</div>
+      <div style="position:absolute; left: ${margin2011}% ">|2011</div>
+      <div style="position:absolute; left: ${margin2010}% ">|2010</div>
+      <div style="position:absolute; left: ${margin2009}% ">|2009</div>
+      <div style="position:absolute; left: ${margin2008}% ">|2008</div>
+    </div>
   <div class="bar-wrapper bar-full">
     <div class="bar">
       <div class="bar-cursor" style="width: ${cursorWidth}%; margin-left: ${cursorLeftMargin}% ">
