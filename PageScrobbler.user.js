@@ -1,13 +1,15 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.05.9
+// @version      2022.11.05.10
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
 // @run-at       document-end
-// @match        http*://e-hentai.org/*
-// @match        http*://exhentai.org/*
+// @match        http://e-hentai.org/*
+// @match        https://e-hentai.org/*
+// @match        http://exhentai.org/*
+// @match        https://exhentai.org/*
 // @grant        GM_addStyle
 // ==/UserScript==
 
