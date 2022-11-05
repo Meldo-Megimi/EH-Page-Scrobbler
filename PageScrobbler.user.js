@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.04.3
+// @version      2022.11.05.1
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
