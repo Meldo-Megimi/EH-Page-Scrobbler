@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.05.1
+// @version      2022.11.05.2
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -66,6 +66,24 @@ const stylesheet = `
 }
 `;
 
+const gidYear = {
+    74629:2008,
+    190496:2009,
+    321076:2010,
+    449183:2011,
+    553117:2012,
+    660230:2013,
+    771830:2014,
+    888870:2015,
+    1012224:2016,
+    1162942:2017,
+    1338484:2018,
+    1543397:2019,
+    1813647:2020,
+    2100270:2021
+};
+
+
 const injectStylesheet = () => {
     if (typeof GM_addStyle != "undefined") {
         GM_addStyle(stylesheet);
@@ -108,7 +126,7 @@ const addPageScrobbler = () => {
     const insertInitialElement = () => {
         const hook = document.querySelector(".searchnav");
 
-        const maxGID = localStorage.getItem("EHPS-maxGID");
+        let maxGID = localStorage.getItem("EHPS-maxGID");
         let firstGID = maxGID, lastGID = 1;
         if (!!document.querySelector(".itg tr .glname a")) { // Minimal and Compact
             firstGID = document.querySelector(".itg tr:nth-child(2) .glname a").href.match(/\/(\d+)\//)?.[1];
@@ -120,43 +138,26 @@ const addPageScrobbler = () => {
             firstGID = document.querySelector(".itg .gl1t:first-child a").href.match(/\/(\d+)\//)?.[1];
             lastGID = document.querySelector(".itg .gl1t:last-child a").href.match(/\/(\d+)\//)?.[1];
         }
+
+        if (maxGID < firstGID) {
+            maxGID = firstGID;
+            localStorage.setItem("EHPS-maxGID", maxGID);
+        }
+
         const cursorLeftMargin = (1.0 - firstGID / maxGID) * 100;
         let cursorWidth = ((firstGID - lastGID) / maxGID) * 100;
         if (cursorWidth < 0.2) cursorWidth = 0.2;
 
-        const margin2021 = (1.0 - 2100270 / maxGID) * 100;
-        const margin2020 = (1.0 - 1813647 / maxGID) * 100;
-        const margin2019 = (1.0 - 1543397 / maxGID) * 100;
-        const margin2018 = (1.0 - 1338484 / maxGID) * 100;
-        const margin2017 = (1.0 - 1162942 / maxGID) * 100;
-        const margin2016 = (1.0 - 1012224 / maxGID) * 100;
-        const margin2015 = (1.0 - 888870 / maxGID) * 100;
-        const margin2014 = (1.0 - 771830 / maxGID) * 100;
-        const margin2013 = (1.0 - 660230 / maxGID) * 100;
-        const margin2012 = (1.0 - 553117 / maxGID) * 100;
-        const margin2011 = (1.0 - 449183 / maxGID) * 100;
-        const margin2010 = (1.0 - 321076 / maxGID) * 100;
-        const margin2009 = (1.0 - 190496 / maxGID) * 100;
-        const margin2008 = (1.0 - 74629 / maxGID) * 100;
+        let yearDiv = ``;
+        for (var key in gidYear) {
+            yearDiv += `<div style="position:absolute; left: ${(1.0 - key / maxGID) * 100}% ">|${gidYear[key]}</div>`;
+        }
 
         const el1 = `
 <div class="search-scrobbler">
-    <div style="position:absolute; width:inherit">
-      <div style="position:absolute; left: ${margin2021}% ">|2021</div>
-      <div style="position:absolute; left: ${margin2020}% ">|2020</div>
-      <div style="position:absolute; left: ${margin2019}% ">|2019</div>
-      <div style="position:absolute; left: ${margin2018}% ">|2018</div>
-      <div style="position:absolute; left: ${margin2017}% ">|2017</div>
-      <div style="position:absolute; left: ${margin2016}% ">|2016</div>
-      <div style="position:absolute; left: ${margin2015}% ">|2015</div>
-      <div style="position:absolute; left: ${margin2014}% ">|2014</div>
-      <div style="position:absolute; left: ${margin2013}% ">|2013</div>
-      <div style="position:absolute; left: ${margin2012}% ">|2012</div>
-      <div style="position:absolute; left: ${margin2011}% ">|2011</div>
-      <div style="position:absolute; left: ${margin2010}% ">|2010</div>
-      <div style="position:absolute; left: ${margin2009}% ">|2009</div>
-      <div style="position:absolute; left: ${margin2008}% ">|2008</div>
-    </div>
+  <div style="position:absolute; width:inherit">
+${yearDiv}
+  </div>
   <div class="bar-wrapper bar-full">
     <div class="bar">
       <div class="bar-cursor" style="width: ${cursorWidth}%; margin-left: ${cursorLeftMargin}% ">
