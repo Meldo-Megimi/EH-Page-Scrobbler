@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.05.5
+// @version      2022.11.05.6
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -196,34 +196,36 @@ const addPageScrobbler = () => {
 }
 
 const updatePageScrobbler = () => {
-    let maxGID = localStorage.getItem("EHPS-maxGID");
-    let firstGID = maxGID, lastGID = 1;
-    if (!!document.querySelector(".itg tr .glname a")) { // Minimal and Compact
-        firstGID = document.querySelector(".itg tr:nth-child(2) .glname a").href.match(/\/(\d+)\//)?.[1];
-        lastGID = document.querySelector(".itg tr:last-child .glname a").href.match(/\/(\d+)\//)?.[1];
-    } else if (!!document.querySelector(".itg tr a")) { // Extended
-        firstGID = document.querySelector(".itg tr:first-child a").href.match(/\/(\d+)\//)?.[1];
-        lastGID = document.querySelector(".itg tr:last-child a").href.match(/\/(\d+)\//)?.[1];
-    } else { // Thumbnail
-        firstGID = document.querySelector(".itg .gl1t:first-child a").href.match(/\/(\d+)\//)?.[1];
-        lastGID = document.querySelector(".itg .gl1t:last-child a").href.match(/\/(\d+)\//)?.[1];
-    }
+    const updateInitialElement = () => {
 
-    if (maxGID < firstGID) {
-        maxGID = firstGID;
-        localStorage.setItem("EHPS-maxGID", maxGID);
-    }
+        let maxGID = localStorage.getItem("EHPS-maxGID");
+        let firstGID = maxGID, lastGID = 1;
+        if (!!document.querySelector(".itg tr .glname a")) { // Minimal and Compact
+            firstGID = document.querySelector(".itg tr:nth-child(2) .glname a").href.match(/\/(\d+)\//)?.[1];
+            lastGID = document.querySelector(".itg tr:last-child .glname a").href.match(/\/(\d+)\//)?.[1];
+        } else if (!!document.querySelector(".itg tr a")) { // Extended
+            firstGID = document.querySelector(".itg tr:first-child a").href.match(/\/(\d+)\//)?.[1];
+            lastGID = document.querySelector(".itg tr:last-child a").href.match(/\/(\d+)\//)?.[1];
+        } else { // Thumbnail
+            firstGID = document.querySelector(".itg .gl1t:first-child a").href.match(/\/(\d+)\//)?.[1];
+            lastGID = document.querySelector(".itg .gl1t:last-child a").href.match(/\/(\d+)\//)?.[1];
+        }
 
-    const cursorLeftMargin = (1.0 - firstGID / maxGID) * 100;
-    let cursorWidth = ((firstGID - lastGID) / maxGID) * 100;
-    if (cursorWidth < 0.2) cursorWidth = 0.2;
+        if (maxGID < firstGID) {
+            maxGID = firstGID;
+            localStorage.setItem("EHPS-maxGID", maxGID);
+        }
 
-    let yearDiv = ``;
-    for (var key in gidYear) {
-        yearDiv += `<div style="position:absolute; left: ${(1.0 - key / maxGID) * 100}% ">|${gidYear[key]}</div>`;
-    }
+        const cursorLeftMargin = (1.0 - firstGID / maxGID) * 100;
+        let cursorWidth = ((firstGID - lastGID) / maxGID) * 100;
+        if (cursorWidth < 0.2) cursorWidth = 0.2;
 
-    document.querySelector(".search-scrobbler").innerHTML = `
+        let yearDiv = ``;
+        for (var key in gidYear) {
+            yearDiv += `<div style="position:absolute; left: ${(1.0 - key / maxGID) * 100}% ">|${gidYear[key]}</div>`;
+        }
+
+        document.querySelector(".search-scrobbler").innerHTML = `
   <div class="bar-wrapper bar-full">
     <div class="bar">
       <div class="bar-cursor" style="width: ${cursorWidth}%; margin-left: ${cursorLeftMargin}% ">
@@ -238,6 +240,38 @@ const updatePageScrobbler = () => {
   <div class="bar-year-labels" style="position:absolute; width:inherit">
 ${yearDiv}
   </div>`;
+    }
+
+    const addEventListeners = () => {
+        const addHoverElement = offset => {
+            if (offset < 2) return;
+            document.querySelector(".bar-hover")?.remove();
+
+            const maxGID = localStorage.getItem("EHPS-maxGID");
+            const width = 730;
+            const hoverGID = ((1.0 - offset / 730) * maxGID).toFixed(0);
+
+            const url = new URL(location.href);
+            url.searchParams.set("next", hoverGID);
+
+            const hook = document.querySelector(".bar-full .bar");
+            const el = `
+<a class="bar-hover" href="${url}" style="left: ${offset - 2}px; width: 2px">
+  <div class="bar-hovertext">${hoverGID}</div>
+</a>`;
+            hook.insertAdjacentHTML("afterbegin", el);
+        }
+
+        const handler = e => {
+            addHoverElement(e.layerX);
+        }
+
+        const el = document.querySelector(".bar-full .bar");
+        el.addEventListener("mousemove", handler);
+    }
+
+    updateInitialElement();
+    addEventListeners();
 }
 
 const showBookmark = GID => {
