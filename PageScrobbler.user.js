@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.05.6
+// @version      2022.11.05.7
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -83,7 +83,6 @@ const gidYear = {
     2100270:2021
 };
 
-
 const injectStylesheet = () => {
     if (typeof GM_addStyle != "undefined") {
         GM_addStyle(stylesheet);
@@ -144,13 +143,11 @@ const addPageScrobbler = () => {
     const url = new URL(location.href);
     if (url.pathname == "/popular") return;
 
-    const insertInitialElement = () => {
-        const hook = document.querySelector(".searchnav");
+    const hook = document.querySelector(".searchnav");
 
-        hook.insertAdjacentHTML("beforebegin", `<div class="search-scrobbler"></div>`);
-        updatePageScrobbler();
+    hook.insertAdjacentHTML("beforebegin", `<div class="search-scrobbler"></div>`);
 
-        const el2 = `
+    const el2 = `
 <div class="saved-search">
   <input class="search-save-button" type="button" value="Save" onclick="saveCurrentGID()"></input>
   <label class="search-list">Saved searches:</label>
@@ -160,39 +157,9 @@ const addPageScrobbler = () => {
   <input class="search-load-button" type="button" value="Remove" onclick="deleteSavedGID()"></input>
   <span id="current_bookmark"></span>&nbsp&nbsp&nbsp<span id="save_load_text"></span>
 </div>`;
-        hook.insertAdjacentHTML("beforebegin", el2);
-    }
+    hook.insertAdjacentHTML("beforebegin", el2);
 
-    const addEventListeners = () => {
-        const addHoverElement = offset => {
-            if (offset < 2) return;
-            document.querySelector(".bar-hover")?.remove();
-
-            const maxGID = localStorage.getItem("EHPS-maxGID");
-            const width = 730;
-            const hoverGID = ((1.0 - offset / 730) * maxGID).toFixed(0);
-
-            const url = new URL(location.href);
-            url.searchParams.set("next", hoverGID);
-
-            const hook = document.querySelector(".bar-full .bar");
-            const el = `
-<a class="bar-hover" href="${url}" style="left: ${offset - 2}px; width: 2px">
-  <div class="bar-hovertext">${hoverGID}</div>
-</a>`;
-            hook.insertAdjacentHTML("afterbegin", el);
-        }
-
-        const handler = e => {
-            addHoverElement(e.layerX);
-        }
-
-        const el = document.querySelector(".bar-full .bar");
-        el.addEventListener("mousemove", handler);
-    }
-
-    insertInitialElement();
-    addEventListeners();
+    updatePageScrobbler();
 }
 
 const updatePageScrobbler = () => {
@@ -356,7 +323,6 @@ unsafeWindow.saveCurrentGID = function () {
 }
 
 unsafeWindow.loadSavedGID = function () {
-    let searchParams = new URLSearchParams(window.location.search);
     let searchSelect = document.getElementById('search-select').value;
     if (searchSelect != null) {
         let gid = localStorage.getItem(searchSelect);
