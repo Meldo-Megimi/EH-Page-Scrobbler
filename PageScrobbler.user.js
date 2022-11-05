@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.05.7
+// @version      2022.11.05.8
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -58,6 +58,14 @@ const stylesheet = `
 .search-scrobbler,
 .search-scrobbler * {
   outline: 0px none !important;
+}
+.bar-year-labels {
+  position:absolute;
+  width:inherit;
+  opacity:50%;
+}
+.bar-year-label {
+  position:absolute;
 }
 
 .saved-search {
@@ -168,14 +176,14 @@ const updatePageScrobbler = () => {
         let maxGID = localStorage.getItem("EHPS-maxGID");
         let firstGID = maxGID, lastGID = 1;
         if (!!document.querySelector(".itg tr .glname a")) { // Minimal and Compact
-            firstGID = document.querySelector(".itg tr:nth-child(2) .glname a").href.match(/\/(\d+)\//)?.[1];
-            lastGID = document.querySelector(".itg tr:last-child .glname a").href.match(/\/(\d+)\//)?.[1];
+            firstGID = parseInt(document.querySelector(".itg tr:nth-child(2) .glname a").href.match(/\/(\d+)\//)?.[1],10);
+            lastGID = parseInt(document.querySelector(".itg tr:last-child .glname a").href.match(/\/(\d+)\//)?.[1],10);
         } else if (!!document.querySelector(".itg tr a")) { // Extended
-            firstGID = document.querySelector(".itg tr:first-child a").href.match(/\/(\d+)\//)?.[1];
-            lastGID = document.querySelector(".itg tr:last-child a").href.match(/\/(\d+)\//)?.[1];
+            firstGID = parseInt(document.querySelector(".itg tr:first-child a").href.match(/\/(\d+)\//)?.[1],10);
+            lastGID = parseInt(document.querySelector(".itg tr:last-child a").href.match(/\/(\d+)\//)?.[1],10);
         } else { // Thumbnail
-            firstGID = document.querySelector(".itg .gl1t:first-child a").href.match(/\/(\d+)\//)?.[1];
-            lastGID = document.querySelector(".itg .gl1t:last-child a").href.match(/\/(\d+)\//)?.[1];
+            firstGID = parseInt(document.querySelector(".itg .gl1t:first-child a").href.match(/\/(\d+)\//)?.[1],10);
+            lastGID = parseInt(document.querySelector(".itg .gl1t:last-child a").href.match(/\/(\d+)\//)?.[1],10);
         }
 
         if (maxGID < firstGID) {
@@ -189,7 +197,7 @@ const updatePageScrobbler = () => {
 
         let yearDiv = ``;
         for (var key in gidYear) {
-            yearDiv += `<div style="position:absolute; left: ${(1.0 - key / maxGID) * 100}% ">|${gidYear[key]}</div>`;
+            yearDiv += `<div class="bar-year-label" style="left: ${(1.0 - key / maxGID) * 100}% ">|${gidYear[key]}</div>`;
         }
 
         document.querySelector(".search-scrobbler").innerHTML = `
@@ -204,7 +212,7 @@ const updatePageScrobbler = () => {
       <div class="bar-min">1</div>
     </div>
   </div>
-  <div class="bar-year-labels" style="position:absolute; width:inherit">
+  <div class="bar-year-labels">
 ${yearDiv}
   </div>`;
     }
