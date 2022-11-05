@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.05.4
+// @version      2022.11.05.5
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -147,51 +147,8 @@ const addPageScrobbler = () => {
     const insertInitialElement = () => {
         const hook = document.querySelector(".searchnav");
 
-        let maxGID = localStorage.getItem("EHPS-maxGID");
-        let firstGID = maxGID, lastGID = 1;
-        if (!!document.querySelector(".itg tr .glname a")) { // Minimal and Compact
-            firstGID = document.querySelector(".itg tr:nth-child(2) .glname a").href.match(/\/(\d+)\//)?.[1];
-            lastGID = document.querySelector(".itg tr:last-child .glname a").href.match(/\/(\d+)\//)?.[1];
-        } else if (!!document.querySelector(".itg tr a")) { // Extended
-            firstGID = document.querySelector(".itg tr:first-child a").href.match(/\/(\d+)\//)?.[1];
-            lastGID = document.querySelector(".itg tr:last-child a").href.match(/\/(\d+)\//)?.[1];
-        } else { // Thumbnail
-            firstGID = document.querySelector(".itg .gl1t:first-child a").href.match(/\/(\d+)\//)?.[1];
-            lastGID = document.querySelector(".itg .gl1t:last-child a").href.match(/\/(\d+)\//)?.[1];
-        }
-
-        if (maxGID < firstGID) {
-            maxGID = firstGID;
-            localStorage.setItem("EHPS-maxGID", maxGID);
-        }
-
-        const cursorLeftMargin = (1.0 - firstGID / maxGID) * 100;
-        let cursorWidth = ((firstGID - lastGID) / maxGID) * 100;
-        if (cursorWidth < 0.2) cursorWidth = 0.2;
-
-        let yearDiv = ``;
-        for (var key in gidYear) {
-            yearDiv += `<div style="position:absolute; left: ${(1.0 - key / maxGID) * 100}% ">|${gidYear[key]}</div>`;
-        }
-
-        const el1 = `
-<div class="search-scrobbler">
-  <div class="bar-wrapper bar-full">
-    <div class="bar">
-      <div class="bar-cursor" style="width: ${cursorWidth}%; margin-left: ${cursorLeftMargin}% ">
-        <div class="bar-hovertext">${firstGID}</div>
-      </div>
-    </div>
-    <div class="bar-labels">
-      <div class="bar-max">${maxGID}</div>
-      <div class="bar-min">1</div>
-    </div>
-  </div>
-  <div class="bar-year-labels" style="position:absolute; width:inherit">
-${yearDiv}
-  </div>
-</div>`;
-        hook.insertAdjacentHTML("beforebegin", el1);
+        hook.insertAdjacentHTML("beforebegin", `<div class="search-scrobbler"></div>`);
+        updatePageScrobbler();
 
         const el2 = `
 <div class="saved-search">
