@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.05.2
+// @version      2022.11.05.3
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -100,23 +100,43 @@ const hasGalleryListTable = () => {
     return !!document.querySelector(".itg.gltm, .itg.gltc, .itg.glte, .itg.gld");
 }
 
-const tryUpdateKnownMaxGID = GID => {
-    if (localStorage.getItem("EHPS-maxGID") === null) {localStorage.setItem("EHPS-maxGID", -1)}
-    const url = new URL(location.href);
-    if (url.pathname !== "/") return;
-    if (url.search !== "") return;
-
+const getMaxGID = doc => {
     let maxGID = 0;
 
     if (!!document.querySelector(".itg tr .glname a")) { // Minimal and Compact
-        maxGID = document.querySelector(".itg tr:nth-child(2) .glname a").href.match(/\/(\d+)\//)?.[1];
-    } else if (!!document.querySelector(".itg tr a")) { // Extended
-        maxGID = document.querySelector(".itg tr:first-child a").href.match(/\/(\d+)\//)?.[1];
+        maxGID = doc.querySelector(".itg tr:nth-child(2) .glname a").href.match(/\/(\d+)\//)?.[1];
+    } else if (!!doc.querySelector(".itg tr a")) { // Extended
+        maxGID = doc.querySelector(".itg tr:first-child a").href.match(/\/(\d+)\//)?.[1];
     } else { // Thumbnail
-        maxGID = document.querySelector(".itg .gl1t:first-child a").href.match(/\/(\d+)\//)?.[1];
+        maxGID = doc.querySelector(".itg .gl1t:first-child a").href.match(/\/(\d+)\//)?.[1];
     }
-
     localStorage.setItem("EHPS-maxGID", maxGID);
+}
+
+const tryUpdateKnownMaxGID = GID => {
+    if (localStorage.getItem("EHPS-maxGID") === null) {localStorage.setItem("EHPS-maxGID", -1)}
+
+    const url = new URL(location.href);
+    if ((url.pathname !== "/") || (url.search !== "")) {
+        // not on frontpage or searching
+        fetch("https://exhentai.org/", {
+            method: 'get'
+        }).then((response) => {
+            return response.text()
+        }).then((res) => {
+            let dom = document.implementation.createHTMLDocument("New Document");
+            dom.write(res);
+            dom.close();
+
+            getMaxGID(dom);
+        }).catch((error) => {
+            console.log(error)
+        });
+
+    } else {
+        // we are on the frontpage
+        getMaxGID(document);
+    }
 }
 
 const addPageScrobbler = () => {
@@ -155,9 +175,6 @@ const addPageScrobbler = () => {
 
         const el1 = `
 <div class="search-scrobbler">
-  <div style="position:absolute; width:inherit">
-${yearDiv}
-  </div>
   <div class="bar-wrapper bar-full">
     <div class="bar">
       <div class="bar-cursor" style="width: ${cursorWidth}%; margin-left: ${cursorLeftMargin}% ">
@@ -168,6 +185,9 @@ ${yearDiv}
       <div class="bar-max">${maxGID}</div>
       <div class="bar-min">1</div>
     </div>
+  </div>
+  <div style="position:absolute; width:inherit">
+${yearDiv}
   </div>
 </div>`;
         hook.insertAdjacentHTML("beforebegin", el1);
@@ -237,7 +257,6 @@ const showBookmark = GID => {
         let searchSelect = document.getElementById('search-select');
         searchSelect.options.length=0
         Object.keys(localStorage).forEach(function(key){
-            console.log(localStorage.getItem(key));
             if (key != "EHPS-maxGID") {
                 let opt = document.createElement('option');
                 opt.text = key;
