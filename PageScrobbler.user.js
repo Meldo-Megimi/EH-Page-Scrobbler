@@ -10,6 +10,7 @@
 // @match        https://e-hentai.org/*
 // @match        http://exhentai.org/*
 // @match        https://exhentai.org/*
+// @match        http://exhentai55ld2wyap5juskbm67czulomrouspdacjamjeloj7ugjbsad.onion/*
 // @grant        GM_addStyle
 // ==/UserScript==
 
@@ -65,6 +66,7 @@ const stylesheet = `
   position:absolute;
   width:inherit;
   opacity:50%;
+  pointer-events: none;
 }
 .bar-year-label {
   position:absolute;
