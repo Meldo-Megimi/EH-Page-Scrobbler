@@ -158,35 +158,105 @@ const tryUpdateKnownMaxGID = GID => {
 }
 
 const addPageScrobbler = () => {
-    const url = new URL(location.href);
-    if (url.pathname == "/popular") return;
+    const addInitialElement = () => {
+        const url = new URL(location.href);
+        if (url.pathname == "/popular") return;
 
-    const hook = document.querySelector(".searchnav");
+        const hook = document.querySelector(".searchnav");
 
-    if (!document.querySelector(".search-scrobbler")) {
-        hook.insertAdjacentHTML("beforebegin", `<div class="search-scrobbler"></div>`);
-    }
+        if (!document.querySelector(".search-scrobbler")) {
+            hook.insertAdjacentHTML("beforebegin", `<div class="search-scrobbler"></div>`);
+        }
 
-    if (!document.querySelector(".saved-search")) {
-        const el2 = `
+        if (!document.querySelector(".saved-search")) {
+            const el2 = `
 <div class="saved-search">
-  <input class="search-save-button" type="button" value="Save" onclick="saveCurrentGID()"></input>
+  <input class="search-save-button" id="search-save-button" type="button" value="Save"></input>
   <label class="search-list">Saved searches:</label>
   <select class="search-list" id="search-select">
   </select>
-  <input class="search-load-button" type="button" value="Load" onclick="loadSavedGID()"></input>
-  <input class="search-load-button" type="button" value="Remove" onclick="deleteSavedGID()"></input>
+  <input class="search-load-button" id="search-load-button" type="button" value="Load"></input>
+  <input class="search-load-button" id="search-delete-button" type="button" value="Remove"></input>
   <span id="current_bookmark"></span>&nbsp&nbsp&nbsp<span id="save_load_text"></span>
 </div>`;
-        hook.insertAdjacentHTML("beforebegin", el2);
+            hook.insertAdjacentHTML("beforebegin", el2);
+        }
+
+        updatePageScrobbler();
     }
 
-    updatePageScrobbler();
+    const addEventListeners = () => {
+        var saveButton = document.getElementById("search-save-button");
+        saveButton.addEventListener("click", function () {
+            let searchParams = new URLSearchParams(window.location.search);
+            if (searchParams.has('f_search')) {
+                let f_search = searchParams.get('f_search');
+                if (searchParams.has('next')) {
+                    let next = searchParams.get('next');
+                    localStorage.setItem(f_search, "&next=" + next);
+                    document.getElementById('save_load_text').innerHTML = "Saved (next) GID " + next + " for search " + f_search;
+                    document.getElementById('current_bookmark').innerHTML = "Bookmark: " + next + "  ";
+
+                    showBookmark();
+                } else if (searchParams.has('prev')) {
+                    let prev = searchParams.get('prev');
+                    localStorage.setItem(f_search, "&prev=" + prev);
+                    document.getElementById('save_load_text').innerHTML = "Saved (prev) GID " + prev + " for search " + f_search;
+                    document.getElementById('current_bookmark').innerHTML = "Bookmark: " + prev + "  ";
+
+                    showBookmark();
+                } else {
+                    let next;
+                    if (!!document.querySelector(".itg tr .glname a")) { // Minimal and Compact
+                        next = document.querySelector(".itg tr:nth-child(2) .glname a").href.match(/\/(\d+)\//)?.[1];
+                    } else if (!!document.querySelector(".itg tr a")) { // Extended
+                        next = document.querySelector(".itg tr:first-child a").href.match(/\/(\d+)\//)?.[1];
+                    } else { // Thumbnail
+                        next = document.querySelector(".itg .gl1t:first-child a").href.match(/\/(\d+)\//)?.[1];
+                    }
+                    localStorage.setItem(f_search, "&next=" + (parseInt(next,10)+1));
+
+                    showBookmark();
+                }
+            }
+        }, false);
+
+        var loadButton = document.getElementById("search-load-button");
+        loadButton.addEventListener("click", function () {
+            let searchSelect = decodeURIComponent(document.getElementById('search-select').value);
+            if (searchSelect != null) {
+                let gid = localStorage.getItem(searchSelect);
+                if (gid) {
+                    const parser = new URL(window.location);
+                    parser.searchParams.delete("next");
+                    parser.searchParams.delete("prev");
+                    parser.searchParams.delete("f_search");
+                    window.location = parser.href + "?f_search=" + encodeURIComponent(searchSelect) + gid;
+                } else {
+                    document.getElementById('save_load_text').innerHTML = "Nothing to load";
+                }
+            }
+        }, false);
+
+        var deleteButton = document.getElementById("search-delete-button");
+        deleteButton.addEventListener("click", function () {
+            let searchSelect = decodeURIComponent(document.getElementById('search-select').value);
+            if (searchSelect != null) {
+                let gid = localStorage.getItem(searchSelect);
+                if (gid) {
+                    localStorage.removeItem(searchSelect);
+                    showBookmark();
+                }
+            }
+        }, false);
+    }
+
+    addInitialElement();
+    addEventListeners();
 }
 
 const updatePageScrobbler = () => {
     const updateInitialElement = () => {
-
         let maxGID = localStorage.getItem("EHPS-maxGID");
         let firstGID = maxGID, lastGID = 1;
         if (!!document.querySelector(".itg tr .glname a")) { // Minimal and Compact
@@ -315,67 +385,6 @@ const main = () => {
     injectStylesheet();
     addPageScrobbler();
     showBookmark();
-}
-
-unsafeWindow.saveCurrentGID = function () {
-    let searchParams = new URLSearchParams(window.location.search);
-    if (searchParams.has('f_search')) {
-        let f_search = searchParams.get('f_search');
-        if (searchParams.has('next')) {
-            let next = searchParams.get('next');
-            localStorage.setItem(f_search, "&next=" + next);
-            document.getElementById('save_load_text').innerHTML = "Saved (next) GID " + next + " for search " + f_search;
-            document.getElementById('current_bookmark').innerHTML = "Bookmark: " + next + "  ";
-
-            showBookmark();
-        } else if (searchParams.has('prev')) {
-            let prev = searchParams.get('prev');
-            localStorage.setItem(f_search, "&prev=" + prev);
-            document.getElementById('save_load_text').innerHTML = "Saved (prev) GID " + prev + " for search " + f_search;
-            document.getElementById('current_bookmark').innerHTML = "Bookmark: " + prev + "  ";
-
-            showBookmark();
-        } else {
-            let next;
-            if (!!document.querySelector(".itg tr .glname a")) { // Minimal and Compact
-                next = document.querySelector(".itg tr:nth-child(2) .glname a").href.match(/\/(\d+)\//)?.[1];
-            } else if (!!document.querySelector(".itg tr a")) { // Extended
-                next = document.querySelector(".itg tr:first-child a").href.match(/\/(\d+)\//)?.[1];
-            } else { // Thumbnail
-                next = document.querySelector(".itg .gl1t:first-child a").href.match(/\/(\d+)\//)?.[1];
-            }
-            localStorage.setItem(f_search, "&next=" + (parseInt(next,10)+1));
-
-            showBookmark();
-        }
-    }
-}
-
-unsafeWindow.loadSavedGID = function () {
-    let searchSelect = decodeURIComponent(document.getElementById('search-select').value);
-    if (searchSelect != null) {
-        let gid = localStorage.getItem(searchSelect);
-        if (gid) {
-            const parser = new URL(window.location);
-            parser.searchParams.delete("next");
-            parser.searchParams.delete("prev");
-            parser.searchParams.delete("f_search");
-            window.location = parser.href + "?f_search=" + encodeURIComponent(searchSelect) + gid;
-        } else {
-            document.getElementById('save_load_text').innerHTML = "Nothing to load";
-        }
-    }
-}
-
-unsafeWindow.deleteSavedGID = function () {
-    let searchSelect = decodeURIComponent(document.getElementById('search-select').value);
-    if (searchSelect != null) {
-        let gid = localStorage.getItem(searchSelect);
-        if (gid) {
-            localStorage.removeItem(searchSelect);
-            showBookmark();
-        }
-    }
 }
 
 main();
