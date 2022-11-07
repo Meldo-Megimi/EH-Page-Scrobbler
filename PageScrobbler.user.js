@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.07.02
+// @version      2022.11.07.03
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -292,6 +292,7 @@ const showBookmark = GID => {
             if (value.startsWith("&next") || value.startsWith("&prev")) {
                 let opt = document.createElement('option');
                 opt.text = key;
+                opt.value = encodeURIComponent(key);
                 if (key == f_search) {
                     opt.selected = true;
                 }
@@ -351,7 +352,7 @@ unsafeWindow.saveCurrentGID = function () {
 }
 
 unsafeWindow.loadSavedGID = function () {
-    let searchSelect = document.getElementById('search-select').value;
+    let searchSelect = decodeURIComponent(document.getElementById('search-select').value);
     if (searchSelect != null) {
         let gid = localStorage.getItem(searchSelect);
         if (gid) {
@@ -367,7 +368,7 @@ unsafeWindow.loadSavedGID = function () {
 }
 
 unsafeWindow.deleteSavedGID = function () {
-    let searchSelect = document.getElementById('search-select').value;
+    let searchSelect = decodeURIComponent(document.getElementById('search-select').value);
     if (searchSelect != null) {
         let gid = localStorage.getItem(searchSelect);
         if (gid) {
