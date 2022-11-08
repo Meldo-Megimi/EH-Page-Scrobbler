@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.07.04
+// @version      2022.11.08.01
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -75,6 +75,12 @@ const stylesheet = `
 .saved-search {
   width: 730px;
   margin: 0 auto;
+}
+
+.search-relpager {
+  width: 730px;
+  margin: 10px auto 5px auto;
+  text-align: center;
 }
 `;
 
@@ -158,10 +164,10 @@ const tryUpdateKnownMaxGID = GID => {
 }
 
 const addPageScrobbler = () => {
-    const addInitialElement = () => {
-        const url = new URL(location.href);
-        if (url.pathname == "/popular") return;
+    const url = new URL(location.href);
+    if (url.pathname == "/popular") return;
 
+    const addInitialElement = () => {
         const hook = document.querySelector(".searchnav");
 
         if (!document.querySelector(".search-scrobbler")) {
@@ -169,7 +175,7 @@ const addPageScrobbler = () => {
         }
 
         if (!document.querySelector(".saved-search")) {
-            const el2 = `
+            hook.insertAdjacentHTML("beforebegin", `
 <div class="saved-search">
   <input class="search-save-button" id="search-save-button" type="button" value="Save"></input>
   <label class="search-list">Saved searches:</label>
@@ -178,8 +184,11 @@ const addPageScrobbler = () => {
   <input class="search-load-button" id="search-load-button" type="button" value="Load"></input>
   <input class="search-load-button" id="search-delete-button" type="button" value="Remove"></input>
   <span id="current_bookmark"></span>&nbsp&nbsp&nbsp<span id="save_load_text"></span>
-</div>`;
-            hook.insertAdjacentHTML("beforebegin", el2);
+</div>`);
+        }
+
+        if (!document.querySelector(".search-relpager")) {
+            hook.insertAdjacentHTML("beforebegin", `<div class="search-relpager"><span class="search-relpager-num"></span</div>`);
         }
 
         updatePageScrobbler();
@@ -231,6 +240,7 @@ const addPageScrobbler = () => {
                     parser.searchParams.delete("next");
                     parser.searchParams.delete("prev");
                     parser.searchParams.delete("f_search");
+                    localStorage.setItem("EHPS-page", 0);
                     window.location = parser.href + "?f_search=" + encodeURIComponent(searchSelect) + gid;
                 } else {
                     document.getElementById('save_load_text').innerHTML = "Nothing to load";
@@ -325,6 +335,10 @@ ${yearDiv}
 
         const handler = e => {
             addHoverElement(e.layerX);
+
+            document.querySelector(".bar-hover").addEventListener("click", function (ev) {
+                localStorage.setItem("EHPS-page", 0);
+            }, false);
         }
 
         const el = document.querySelector(".bar-full .bar");
@@ -379,12 +393,98 @@ const showBookmark = GID => {
     }
 }
 
+const addPageCounter = () => {
+    if (localStorage.getItem("EHPS-page") === null) localStorage.setItem("EHPS-page", 0);
+    if (document.querySelector(".search-relpager-num") === null) return;
+
+    document.querySelector(".search-relpager-num").innerHTML = `You are on relative page: ${localStorage.getItem("EHPS-page")}`;
+
+    // jump buttons
+    document.querySelector(".searchnav #uprev").addEventListener("click", function (ev) {
+        if (ev.target.localName === "span") return
+        if ((new URLSearchParams(ev.target.href)).has("jump")) {
+            localStorage.setItem("EHPS-page", 0);
+        } else {
+            localStorage.setItem("EHPS-page", parseInt(localStorage.getItem("EHPS-page")) - 1);
+        }
+    }, false);
+
+    document.querySelector(".searchnav #dprev").addEventListener("click", function (ev) {
+        if (ev.target.localName === "span") return
+        if ((new URLSearchParams(ev.target.href)).has("jump")) {
+            localStorage.setItem("EHPS-page", 0);
+        } else {
+            localStorage.setItem("EHPS-page", parseInt(localStorage.getItem("EHPS-page")) - 1);
+        }
+    }, false);
+
+    document.querySelector(".searchnav #unext").addEventListener("click", function (ev) {
+        if (ev.target.localName === "span") return
+        if ((new URLSearchParams(ev.target.href)).has("jump")) {
+            localStorage.setItem("EHPS-page", 0);
+        } else {
+            localStorage.setItem("EHPS-page", parseInt(localStorage.getItem("EHPS-page")) + 1);
+        }
+    }, false);
+
+    document.querySelector(".searchnav #dnext").addEventListener("click", function (ev) {
+        if (ev.target.localName === "span") return
+        if ((new URLSearchParams(ev.target.href)).has("jump")) {
+            localStorage.setItem("EHPS-page", 0);
+        } else {
+            localStorage.setItem("EHPS-page", parseInt(localStorage.getItem("EHPS-page")) + 1);
+        }
+    }, false);
+
+    document.querySelector(".searchnav #ufirst").addEventListener("click", function (ev) {
+        if (ev.target.localName === "span") return
+        localStorage.setItem("EHPS-page", 0);
+    }, false);
+
+    document.querySelector(".searchnav #dfirst").addEventListener("click", function (ev) {
+        if (ev.target.localName === "span") return
+        localStorage.setItem("EHPS-page", 0);
+    }, false);
+
+    document.querySelector(".searchnav #ulast").addEventListener("click", function (ev) {
+        if (ev.target.localName === "span") return
+        localStorage.setItem("EHPS-page", 0);
+    }, false);
+
+    document.querySelector(".searchnav #dlast").addEventListener("click", function (ev) {
+        if (ev.target.localName === "span") return
+        localStorage.setItem("EHPS-page", 0);
+    }, false);
+
+    // search button
+    let searchButton = document.querySelector("#searchbox form div input:nth-child(2)");
+    if (searchButton !== null) {
+        searchButton.addEventListener("click", function (ev) {
+            localStorage.setItem("EHPS-page", 0);
+        }, false);
+    }
+
+    // site nav
+    document.querySelectorAll('#nb a').forEach(function(nav){
+        nav.addEventListener("click", function (ev) {
+            localStorage.setItem("EHPS-page", 0);
+        }, false);
+    });
+
+    document.querySelectorAll('.dp a').forEach(function(nav){
+        nav.addEventListener("click", function (ev) {
+            localStorage.setItem("EHPS-page", 0);
+        }, false);
+    });
+}
+
 const main = () => {
     if (!hasGalleryListTable()) return;
     tryUpdateKnownMaxGID();
     injectStylesheet();
     addPageScrobbler();
     showBookmark();
+    addPageCounter();
 }
 
 main();
