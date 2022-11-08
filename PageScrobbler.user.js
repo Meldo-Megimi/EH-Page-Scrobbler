@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.08.04
+// @version      2022.11.08.05
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -426,10 +426,10 @@ const addPageCounter = () => {
     // do we know the current page?
     if (knownPages[`P${currPage}`] == null) {
         if (window.location.search != "") {
-            knownPages[`P${currPage}`] = ` ${window.location.search}`;
+            knownPages[`P${currPage}`] = `${window.location.search}`;
         } else {
             let maxGID = parseInt(getMaxGID(document), 10) + 1;
-            knownPages[`P${currPage}`] = ` ?next=${maxGID}`;
+            knownPages[`P${currPage}`] = `?next=${maxGID}`;
         }
 
         if (parseInt(knownPages.min) > currPage) knownPages.min = currPage;
@@ -440,7 +440,7 @@ const addPageCounter = () => {
 
     // look if next page announced is known
     if ((knownPages[`P${currPage + 1}`] == null) && (document.querySelector(".searchnav #unext").localName === "a")) {
-        knownPages[`P${currPage + 1}`] = ` ${(new URL(document.querySelector(".searchnav #unext").href)).search}`;
+        knownPages[`P${currPage + 1}`] = `${(new URL(document.querySelector(".searchnav #unext").href)).search}`;
 
         if (parseInt(knownPages.min) > currPage + 1) knownPages.min = currPage + 1;
         if (parseInt(knownPages.max) < currPage + 1) knownPages.max = currPage + 1;
@@ -448,10 +448,9 @@ const addPageCounter = () => {
         localStorage.setItem("EHPS-pages", JSON.stringify(knownPages));
     }
 
-
     // look if previous page announced is known
     if ((knownPages[`P${currPage - 1}`] == null) && (document.querySelector(".searchnav #uprev").localName === "a")) {
-        knownPages[`P${currPage - 1}`] = ` ${(new URL(document.querySelector(".searchnav #uprev").href)).search}`;
+        knownPages[`P${currPage - 1}`] = `${(new URL(document.querySelector(".searchnav #uprev").href)).search}`;
 
         if (parseInt(knownPages.min) > currPage - 1) knownPages.min = currPage - 1;
         if (parseInt(knownPages.max) < currPage - 1) knownPages.max = currPage - 1;
@@ -487,10 +486,6 @@ const addPageCounter = () => {
             if (i == currPage) {
                 pages += `<td class="ptds" onclick="document.location=this.firstChild.href"><a>${i}</a></td>`;
             } else {
-                const parser = new URL(window.location);
-                parser.searchParams.delete("prev");
-                parser.searchParams.set("next", knownPages[`P${i}`]);
-
                 pages += `<td onclick="document.location=this.firstChild.href"><a href=${knownPages[`P${i}`]}>${i}</a></td>`;
             }
         }
@@ -509,7 +504,21 @@ const addPageCounter = () => {
     // page buttons
     document.querySelectorAll('.search-relpager-num td').forEach(function(nav){
         nav.addEventListener("click", function (ev) {
-            if ((ev.target.innerText != "?") && (ev.target.innerText != "...")) localStorage.setItem("EHPS-page", ev.target.innerText)
+            if (ev.target.innerText == "...") {
+                let knownPages = {"min":0,"max":0};
+                if (localStorage.getItem("EHPS-pages") != null) knownPages = JSON.parse(localStorage.getItem("EHPS-pages"));
+
+                let page = prompt(`Jump to page: (between ${knownPages.min} and ${knownPages.max})`, 0);
+                if(page != null) {
+                    console.log(page);
+
+                    if ((page >= knownPages.min) && (page <= knownPages.max))
+                    {
+                        document.location = knownPages[`P${page}`];
+                        localStorage.setItem("EHPS-page", page);
+                    }
+                }
+            } else if (ev.target.innerText != "?") localStorage.setItem("EHPS-page", ev.target.innerText)
         }, false);
     });
 
