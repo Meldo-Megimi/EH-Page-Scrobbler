@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.08.02
+// @version      2022.11.08.03
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -79,7 +79,7 @@ const stylesheet = `
 
 .search-relpager {
   width: 730px;
-  margin: 10px auto 5px auto;
+  margin: 0px auto 0px auto;
   text-align: center;
 }
 `;
@@ -128,10 +128,7 @@ const getMaxGID = doc => {
         maxGID = doc.querySelector(".itg .gl1t:first-child a").href.match(/\/(\d+)\//)?.[1];
     }
 
-    let currentMaxGID = localStorage.getItem("EHPS-maxGID");
-    if ((currentMaxGID === null) || (currentMaxGID < maxGID)) {
-        localStorage.setItem("EHPS-maxGID", maxGID);
-    }
+    return maxGID;
 }
 
 const tryUpdateKnownMaxGID = GID => {
@@ -151,7 +148,12 @@ const tryUpdateKnownMaxGID = GID => {
             dom.write(res);
             dom.close();
 
-            getMaxGID(dom);
+            let maxGID = getMaxGID(dom);
+            let currentMaxGID = localStorage.getItem("EHPS-maxGID");
+            if ((currentMaxGID === null) || (currentMaxGID < maxGID)) {
+                localStorage.setItem("EHPS-maxGID", maxGID);
+            }
+
             updatePageScrobbler();
         }).catch((error) => {
             console.log(error)
@@ -159,8 +161,19 @@ const tryUpdateKnownMaxGID = GID => {
 
     } else {
         // we are on the frontpage
-        getMaxGID(document);
+        let maxGID = getMaxGID(document);
+        let currentMaxGID = localStorage.getItem("EHPS-maxGID");
+        if ((currentMaxGID === null) || (currentMaxGID < maxGID)) {
+            localStorage.setItem("EHPS-maxGID", maxGID);
+        }
     }
+}
+
+const resetPageCounter = () => {
+    localStorage.setItem("EHPS-page", 0);
+    localStorage.removeItem("EHPS-pages", 0);
+    localStorage.removeItem("EHPS-page-endlow");
+    localStorage.removeItem("EHPS-page-endhigh");
 }
 
 const addPageScrobbler = () => {
@@ -188,7 +201,7 @@ const addPageScrobbler = () => {
         }
 
         if (!document.querySelector(".search-relpager")) {
-            hook.insertAdjacentHTML("beforebegin", `<div class="search-relpager"><span class="search-relpager-num"></span</div>`);
+            hook.insertAdjacentHTML("afterend", `<div class="search-relpager"><span class="search-relpager-num"></span</div>`);
         }
 
         updatePageScrobbler();
@@ -240,7 +253,7 @@ const addPageScrobbler = () => {
                     parser.searchParams.delete("next");
                     parser.searchParams.delete("prev");
                     parser.searchParams.delete("f_search");
-                    localStorage.setItem("EHPS-page", 0);
+                    resetPageCounter();
                     window.location = parser.href + "?f_search=" + encodeURIComponent(searchSelect) + gid;
                 } else {
                     document.getElementById('save_load_text').innerHTML = "Nothing to load";
@@ -337,7 +350,7 @@ ${yearDiv}
             addHoverElement(e.layerX);
 
             document.querySelector(".bar-hover").addEventListener("click", function (ev) {
-                localStorage.setItem("EHPS-page", 0);
+                resetPageCounter();
             }, false);
         }
 
@@ -399,16 +412,88 @@ const showBookmark = GID => {
 }
 
 const addPageCounter = () => {
-    if (localStorage.getItem("EHPS-page") === null) localStorage.setItem("EHPS-page", 0);
+    if (localStorage.getItem("EHPS-page") === null) resetPageCounter();
     if (document.querySelector(".search-relpager-num") === null) return;
 
-    document.querySelector(".search-relpager-num").innerHTML = `You are on relative page: ${localStorage.getItem("EHPS-page")}`;
+    const currPage = parseInt(localStorage.getItem("EHPS-page"));
+
+    if (document.querySelector(".searchnav #uprev").localName === "span") localStorage.setItem("EHPS-page-endlow", currPage);
+    if (document.querySelector(".searchnav #unext").localName === "span") localStorage.setItem("EHPS-page-endhigh", currPage);
+
+    let knownPages = {"min":0,"max":0};
+    if (localStorage.getItem("EHPS-pages") != null) knownPages = JSON.parse(localStorage.getItem("EHPS-pages"));
+
+    if (knownPages[`P${currPage}`] == null) {
+        if (window.location.search != "") {
+            knownPages[`P${currPage}`] = ` ${window.location.search}`;
+        } else {
+            let maxGID = parseInt(getMaxGID(document), 10) + 1;
+            knownPages[`P${currPage}`] = ` ?next=${maxGID}`;
+        }
+
+        if (parseInt(knownPages.min) > currPage) knownPages.min = currPage;
+        if (parseInt(knownPages.max) < currPage) knownPages.max = currPage;
+
+        localStorage.setItem("EHPS-pages", JSON.stringify(knownPages));
+    }
+
+    let pages = "";
+    if (localStorage.getItem("EHPS-page-endlow") == null) pages += "<td>?</td>";
+
+    let knownCount = parseInt(knownPages.max) - parseInt(knownPages.min);
+    let kl = currPage - parseInt(knownPages.min);
+    let ku = parseInt(knownPages.max) - currPage;
+    let hidelow = parseInt(knownPages.max) + 1, hidehigh = parseInt(knownPages.min) - 1;
+
+    if (knownCount > 10)
+    {
+        if (kl > ku) {
+            hidelow = parseInt(knownPages.min) + 1;
+            hidehigh= hidelow + (knownCount - 10);
+        } else {
+            hidehigh= parseInt(knownPages.max) - 1;
+            hidelow = hidehigh - (knownCount - 10);
+        }
+    }
+
+    for (let i = parseInt(knownPages.min); i <= parseInt(knownPages.max); i++) {
+        if ((i >= hidelow) && (i <= hidehigh)) {
+            if (i == hidelow) pages += `<td><a>...</a></td>`;
+        } else {
+            if (i == currPage) {
+                pages += `<td class="ptds" onclick="document.location=this.firstChild.href"><a>${i}</a></td>`;
+            } else {
+                const parser = new URL(window.location);
+                parser.searchParams.delete("prev");
+                parser.searchParams.set("next", knownPages[`P${i}`]);
+
+                pages += `<td onclick="document.location=this.firstChild.href"><a href=${knownPages[`P${i}`]}>${i}</a></td>`;
+            }
+        }
+    }
+
+    if (localStorage.getItem("EHPS-page-endhigh") == null) pages += "<td>?</td>";
+
+    document.querySelector(".search-relpager-num").innerHTML = `
+  <table class="ptt" style="margin:2px auto 0px">
+    <tbody>
+      <tr>${pages}</tr>
+    </tbody>
+  </table>
+    `;
+
+    // page buttons
+    document.querySelectorAll('.search-relpager-num td').forEach(function(nav){
+        nav.addEventListener("click", function (ev) {
+            if ((ev.target.innerText != "?") && (ev.target.innerText != "...")) localStorage.setItem("EHPS-page", ev.target.innerText)
+        }, false);
+    });
 
     // jump buttons
     document.querySelector(".searchnav #uprev").addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
         if ((new URLSearchParams(ev.target.href)).has("jump")) {
-            localStorage.setItem("EHPS-page", 0);
+            resetPageCounter();
         } else {
             localStorage.setItem("EHPS-page", parseInt(localStorage.getItem("EHPS-page")) - 1);
         }
@@ -417,7 +502,7 @@ const addPageCounter = () => {
     document.querySelector(".searchnav #dprev").addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
         if ((new URLSearchParams(ev.target.href)).has("jump")) {
-            localStorage.setItem("EHPS-page", 0);
+            resetPageCounter();
         } else {
             localStorage.setItem("EHPS-page", parseInt(localStorage.getItem("EHPS-page")) - 1);
         }
@@ -426,7 +511,7 @@ const addPageCounter = () => {
     document.querySelector(".searchnav #unext").addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
         if ((new URLSearchParams(ev.target.href)).has("jump")) {
-            localStorage.setItem("EHPS-page", 0);
+            resetPageCounter();
         } else {
             localStorage.setItem("EHPS-page", parseInt(localStorage.getItem("EHPS-page")) + 1);
         }
@@ -435,7 +520,7 @@ const addPageCounter = () => {
     document.querySelector(".searchnav #dnext").addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
         if ((new URLSearchParams(ev.target.href)).has("jump")) {
-            localStorage.setItem("EHPS-page", 0);
+            resetPageCounter();
         } else {
             localStorage.setItem("EHPS-page", parseInt(localStorage.getItem("EHPS-page")) + 1);
         }
@@ -443,42 +528,42 @@ const addPageCounter = () => {
 
     document.querySelector(".searchnav #ufirst").addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
-        localStorage.setItem("EHPS-page", 0);
+        resetPageCounter();
     }, false);
 
     document.querySelector(".searchnav #dfirst").addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
-        localStorage.setItem("EHPS-page", 0);
+        resetPageCounter();
     }, false);
 
     document.querySelector(".searchnav #ulast").addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
-        localStorage.setItem("EHPS-page", 0);
+        resetPageCounter();
     }, false);
 
     document.querySelector(".searchnav #dlast").addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
-        localStorage.setItem("EHPS-page", 0);
+        resetPageCounter();
     }, false);
 
     // search button
     let searchButton = document.querySelector("#searchbox form div input:nth-child(2)");
     if (searchButton !== null) {
         searchButton.addEventListener("click", function (ev) {
-            localStorage.setItem("EHPS-page", 0);
+            resetPageCounter();
         }, false);
     }
 
     // site nav
     document.querySelectorAll('#nb a').forEach(function(nav){
         nav.addEventListener("click", function (ev) {
-            localStorage.setItem("EHPS-page", 0);
+            resetPageCounter();
         }, false);
     });
 
     document.querySelectorAll('.dp a').forEach(function(nav){
         nav.addEventListener("click", function (ev) {
-            localStorage.setItem("EHPS-page", 0);
+            resetPageCounter();
         }, false);
     });
 }
