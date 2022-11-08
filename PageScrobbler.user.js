@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.08.05
+// @version      2022.11.08.06
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -460,18 +460,16 @@ const addPageCounter = () => {
 
     // calc the pages not to show to limit visible pages
     let knownCount = parseInt(knownPages.max) - parseInt(knownPages.min);
-    let kl = currPage - parseInt(knownPages.min);
-    let ku = parseInt(knownPages.max) - currPage;
-    let hidelow = parseInt(knownPages.max) + 1, hidehigh = parseInt(knownPages.min) - 1;
+    let hideStart = parseInt(knownPages.max) + 1, hideStop = parseInt(knownPages.min) - 1;
 
     if (knownCount > 10)
     {
-        if (kl > ku) {
-            hidelow = parseInt(knownPages.min) + 1;
-            hidehigh= hidelow + (knownCount - 10);
+        if ((currPage - parseInt(knownPages.min)) > (parseInt(knownPages.max) - currPage)) {
+            hideStart = parseInt(knownPages.min) + 1;
+            hideStop = hideStart + (knownCount - 10);
         } else {
-            hidehigh= parseInt(knownPages.max) - 1;
-            hidelow = hidehigh - (knownCount - 10);
+            hideStop = parseInt(knownPages.max) - 1;
+            hideStart = hideStop - (knownCount - 10);
         }
     }
 
@@ -480,14 +478,11 @@ const addPageCounter = () => {
     if (localStorage.getItem("EHPS-page-endlow") == null) pages += "<td>?</td>";
 
     for (let i = parseInt(knownPages.min); i <= parseInt(knownPages.max); i++) {
-        if ((i >= hidelow) && (i <= hidehigh)) {
-            if (i == hidelow) pages += `<td><a>...</a></td>`;
+        if ((i >= hideStart) && (i <= hideStop)) {
+            if (i == hideStart) pages += `<td><a>...</a></td>`;
         } else {
-            if (i == currPage) {
-                pages += `<td class="ptds" onclick="document.location=this.firstChild.href"><a>${i}</a></td>`;
-            } else {
-                pages += `<td onclick="document.location=this.firstChild.href"><a href=${knownPages[`P${i}`]}>${i}</a></td>`;
-            }
+            if (i == currPage) pages += `<td class="ptds" onclick="document.location=this.firstChild.href"><a>${i}</a></td>`;
+            else pages += `<td onclick="document.location=this.firstChild.href"><a href=${knownPages[`P${i}`]}>${i}</a></td>`;
         }
     }
 
@@ -498,10 +493,10 @@ const addPageCounter = () => {
     <tbody>
       <tr>${pages}</tr>
     </tbody>
-  </table>
-    `;
+  </table>`;
 
-    // page buttons
+    // add click event handler ...
+    // ... for page buttons
     document.querySelectorAll('.search-relpager-num td').forEach(function(nav){
         nav.addEventListener("click", function (ev) {
             if (ev.target.innerText == "...") {
@@ -514,49 +509,37 @@ const addPageCounter = () => {
 
                     if ((page >= knownPages.min) && (page <= knownPages.max))
                     {
-                        document.location = knownPages[`P${page}`];
                         localStorage.setItem("EHPS-page", page);
+                        document.location = knownPages[`P${page}`];
                     }
                 }
             } else if (ev.target.innerText != "?") localStorage.setItem("EHPS-page", ev.target.innerText)
         }, false);
     });
 
-    // jump buttons
+    // ... for jump buttons
     document.querySelector(".searchnav #uprev").addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
-        if ((new URLSearchParams(ev.target.href)).has("jump")) {
-            resetPageCounter();
-        } else {
-            localStorage.setItem("EHPS-page", parseInt(localStorage.getItem("EHPS-page")) - 1);
-        }
+        if ((new URLSearchParams(ev.target.href)).has("jump")) resetPageCounter();
+        else localStorage.setItem("EHPS-page", parseInt(localStorage.getItem("EHPS-page")) - 1);
     }, false);
 
     document.querySelector(".searchnav #dprev").addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
-        if ((new URLSearchParams(ev.target.href)).has("jump")) {
-            resetPageCounter();
-        } else {
-            localStorage.setItem("EHPS-page", parseInt(localStorage.getItem("EHPS-page")) - 1);
-        }
+        if ((new URLSearchParams(ev.target.href)).has("jump")) resetPageCounter();
+        else localStorage.setItem("EHPS-page", parseInt(localStorage.getItem("EHPS-page")) - 1);
     }, false);
 
     document.querySelector(".searchnav #unext").addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
-        if ((new URLSearchParams(ev.target.href)).has("jump")) {
-            resetPageCounter();
-        } else {
-            localStorage.setItem("EHPS-page", parseInt(localStorage.getItem("EHPS-page")) + 1);
-        }
+        if ((new URLSearchParams(ev.target.href)).has("jump")) resetPageCounter();
+        else localStorage.setItem("EHPS-page", parseInt(localStorage.getItem("EHPS-page")) + 1);
     }, false);
 
     document.querySelector(".searchnav #dnext").addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
-        if ((new URLSearchParams(ev.target.href)).has("jump")) {
-            resetPageCounter();
-        } else {
-            localStorage.setItem("EHPS-page", parseInt(localStorage.getItem("EHPS-page")) + 1);
-        }
+        if ((new URLSearchParams(ev.target.href)).has("jump")) resetPageCounter();
+        else localStorage.setItem("EHPS-page", parseInt(localStorage.getItem("EHPS-page")) + 1);
     }, false);
 
     document.querySelector(".searchnav #ufirst").addEventListener("click", function (ev) {
@@ -579,7 +562,7 @@ const addPageCounter = () => {
         resetPageCounter();
     }, false);
 
-    // search button
+    // ... for search button
     let searchButton = document.querySelector("#searchbox form div input:nth-child(2)");
     if (searchButton !== null) {
         searchButton.addEventListener("click", function (ev) {
@@ -587,7 +570,7 @@ const addPageCounter = () => {
         }, false);
     }
 
-    // site nav
+    // ... for site nav
     document.querySelectorAll('#nb a').forEach(function(nav){
         nav.addEventListener("click", function (ev) {
             resetPageCounter();
