@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.08.03
+// @version      2022.11.08.04
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -423,6 +423,7 @@ const addPageCounter = () => {
     let knownPages = {"min":0,"max":0};
     if (localStorage.getItem("EHPS-pages") != null) knownPages = JSON.parse(localStorage.getItem("EHPS-pages"));
 
+    // do we know the current page?
     if (knownPages[`P${currPage}`] == null) {
         if (window.location.search != "") {
             knownPages[`P${currPage}`] = ` ${window.location.search}`;
@@ -437,9 +438,28 @@ const addPageCounter = () => {
         localStorage.setItem("EHPS-pages", JSON.stringify(knownPages));
     }
 
-    let pages = "";
-    if (localStorage.getItem("EHPS-page-endlow") == null) pages += "<td>?</td>";
+    // look if next page announced is known
+    if ((knownPages[`P${currPage + 1}`] == null) && (document.querySelector(".searchnav #unext").localName === "a")) {
+        knownPages[`P${currPage + 1}`] = ` ${(new URL(document.querySelector(".searchnav #unext").href)).search}`;
 
+        if (parseInt(knownPages.min) > currPage + 1) knownPages.min = currPage + 1;
+        if (parseInt(knownPages.max) < currPage + 1) knownPages.max = currPage + 1;
+
+        localStorage.setItem("EHPS-pages", JSON.stringify(knownPages));
+    }
+
+
+    // look if previous page announced is known
+    if ((knownPages[`P${currPage - 1}`] == null) && (document.querySelector(".searchnav #uprev").localName === "a")) {
+        knownPages[`P${currPage - 1}`] = ` ${(new URL(document.querySelector(".searchnav #uprev").href)).search}`;
+
+        if (parseInt(knownPages.min) > currPage - 1) knownPages.min = currPage - 1;
+        if (parseInt(knownPages.max) < currPage - 1) knownPages.max = currPage - 1;
+
+        localStorage.setItem("EHPS-pages", JSON.stringify(knownPages));
+    }
+
+    // calc the pages not to show to limit visible pages
     let knownCount = parseInt(knownPages.max) - parseInt(knownPages.min);
     let kl = currPage - parseInt(knownPages.min);
     let ku = parseInt(knownPages.max) - currPage;
@@ -455,6 +475,10 @@ const addPageCounter = () => {
             hidelow = hidehigh - (knownCount - 10);
         }
     }
+
+    // build paginator html code
+    let pages = "";
+    if (localStorage.getItem("EHPS-page-endlow") == null) pages += "<td>?</td>";
 
     for (let i = parseInt(knownPages.min); i <= parseInt(knownPages.max); i++) {
         if ((i >= hidelow) && (i <= hidehigh)) {
