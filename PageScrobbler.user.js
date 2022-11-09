@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.09.02
+// @version      2022.11.09.03
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -12,8 +12,6 @@
 // @match        https://exhentai.org/*
 // @match        http://exhentai55ld2wyap5juskbm67czulomrouspdacjamjeloj7ugjbsad.onion/*
 // @grant        GM_addStyle
-// @grant        GM_getTab
-// @grant        GM_saveTab
 // ==/UserScript==
 
 const stylesheet = `
@@ -172,13 +170,12 @@ const tryUpdateKnownMaxGID = GID => {
 }
 
 const resetPageCounter = () => {
-    GM_getTab(function (pageInfo) {
-        pageInfo.current = 0;
-        pageInfo.knownPages = {"min":0,"max":0};
-        pageInfo.endLow = null;
-        pageInfo.endHigh = null;
-        GM_saveTab(pageInfo);
-    });
+    let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
+    pageInfo.current = 0;
+    pageInfo.knownPages = {"min":0,"max":0};
+    pageInfo.endLow = null;
+    pageInfo.endHigh = null;
+    sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
 }
 
 const addPageScrobbler = () => {
@@ -420,127 +417,125 @@ const showBookmark = GID => {
 
 const addPageCounter = () => {
     if (document.querySelector(".search-relpager-num") === null) return;
-    try { if (GM_getTab == null) return; } catch (e) { return; }
 
-    GM_getTab(function (pageInfo) {
-        if (pageInfo.current == null) {
-            pageInfo.current = 0;
-            pageInfo.knownPages = {"min":0,"max":0};
-            pageInfo.endLow = null;
-            pageInfo.endHigh = null;
-        }
-        else
-        {
-            pageInfo.current = parseInt(pageInfo.current);
-            pageInfo.knownPages.min = parseInt(pageInfo.knownPages.min);
-            pageInfo.knownPages.max = parseInt(pageInfo.knownPages.max);
-        }
+    let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
+    console.log(pageInfo);
+    if (pageInfo == null) {
+        pageInfo = {};
+        pageInfo.current = 0;
+        pageInfo.knownPages = {"min":0,"max":0};
+        pageInfo.endLow = null;
+        pageInfo.endHigh = null;
+    }
+    else
+    {
+        pageInfo.current = parseInt(pageInfo.current);
+        pageInfo.knownPages.min = parseInt(pageInfo.knownPages.min);
+        pageInfo.knownPages.max = parseInt(pageInfo.knownPages.max);
+    }
 
-        if (document.querySelector(".searchnav #uprev").localName === "span") pageInfo.endLow = pageInfo.current;
-        if (document.querySelector(".searchnav #unext").localName === "span") pageInfo.endHigh = pageInfo.current;
+    if (document.querySelector(".searchnav #uprev").localName === "span") pageInfo.endLow = pageInfo.current;
+    if (document.querySelector(".searchnav #unext").localName === "span") pageInfo.endHigh = pageInfo.current;
 
-        // do we know the current page?
-        if (pageInfo.knownPages[`P${pageInfo.current}`] == null) {
-            if (window.location.search != "") {
-                pageInfo.knownPages[`P${pageInfo.current}`] = `${window.location.search}`;
-            } else {
-                let maxGID = parseInt(getMaxGID(document), 10) + 1;
-                pageInfo.knownPages[`P${pageInfo.current}`] = `?next=${maxGID}`;
-            }
-
-            if (pageInfo.knownPages.min > pageInfo.current) pageInfo.knownPages.min = pageInfo.current;
-            if (pageInfo.knownPages.max < pageInfo.current) pageInfo.knownPages.max = pageInfo.current;
+    // do we know the current page?
+    if (pageInfo.knownPages[`P${pageInfo.current}`] == null) {
+        if (window.location.search != "") {
+            pageInfo.knownPages[`P${pageInfo.current}`] = `${window.location.search}`;
+        } else {
+            let maxGID = parseInt(getMaxGID(document), 10) + 1;
+            pageInfo.knownPages[`P${pageInfo.current}`] = `?next=${maxGID}`;
         }
 
-        // look if next page announced is known
-        if ((pageInfo.knownPages[`P${pageInfo.current + 1}`] == null) && (document.querySelector(".searchnav #unext").localName === "a")) {
-            pageInfo.knownPages[`P${pageInfo.current + 1}`] = `${(new URL(document.querySelector(".searchnav #unext").href)).search}`;
+        if (pageInfo.knownPages.min > pageInfo.current) pageInfo.knownPages.min = pageInfo.current;
+        if (pageInfo.knownPages.max < pageInfo.current) pageInfo.knownPages.max = pageInfo.current;
+    }
 
-            if (pageInfo.knownPages.min > pageInfo.current + 1) pageInfo.knownPages.min = pageInfo.current + 1;
-            if (pageInfo.knownPages.max < pageInfo.current + 1) pageInfo.knownPages.max = pageInfo.current + 1;
+    // look if next page announced is known
+    if ((pageInfo.knownPages[`P${pageInfo.current + 1}`] == null) && (document.querySelector(".searchnav #unext").localName === "a")) {
+        pageInfo.knownPages[`P${pageInfo.current + 1}`] = `${(new URL(document.querySelector(".searchnav #unext").href)).search}`;
+
+        if (pageInfo.knownPages.min > pageInfo.current + 1) pageInfo.knownPages.min = pageInfo.current + 1;
+        if (pageInfo.knownPages.max < pageInfo.current + 1) pageInfo.knownPages.max = pageInfo.current + 1;
+    }
+
+    // look if previous page announced is known
+    if ((pageInfo.knownPages[`P${pageInfo.current - 1}`] == null) && (document.querySelector(".searchnav #uprev").localName === "a")) {
+        pageInfo.knownPages[`P${pageInfo.current - 1}`] = `${(new URL(document.querySelector(".searchnav #uprev").href)).search}`;
+
+        if (pageInfo.knownPages.min > pageInfo.current - 1) pageInfo.knownPages.min = pageInfo.current - 1;
+        if (pageInfo.knownPages.max < pageInfo.current - 1) pageInfo.knownPages.max = pageInfo.current - 1;
+    }
+
+    sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
+
+    // calc the pages not to show to limit visible pages
+    let knownCount = pageInfo.knownPages.max - pageInfo.knownPages.min;
+    let hideStart = pageInfo.knownPages.max + 1, hideStop = pageInfo.knownPages.min - 1;
+
+    if (knownCount > 10)
+    {
+        if ((pageInfo.current - pageInfo.knownPages.min) > (pageInfo.knownPages.max - pageInfo.current)) {
+            hideStart = pageInfo.knownPages.min + 1;
+            hideStop = hideStart + (knownCount - 10);
+        } else {
+            hideStop = pageInfo.knownPages.max - 1;
+            hideStart = hideStop - (knownCount - 10);
         }
+    }
 
-        // look if previous page announced is known
-        if ((pageInfo.knownPages[`P${pageInfo.current - 1}`] == null) && (document.querySelector(".searchnav #uprev").localName === "a")) {
-            pageInfo.knownPages[`P${pageInfo.current - 1}`] = `${(new URL(document.querySelector(".searchnav #uprev").href)).search}`;
+    // build paginator html code
+    let pages = "";
+    if (pageInfo.endLow == null) pages += "<td>?</td>";
 
-            if (pageInfo.knownPages.min > pageInfo.current - 1) pageInfo.knownPages.min = pageInfo.current - 1;
-            if (pageInfo.knownPages.max < pageInfo.current - 1) pageInfo.knownPages.max = pageInfo.current - 1;
+    for (let i = pageInfo.knownPages.min; i <= pageInfo.knownPages.max; i++) {
+        if ((i >= hideStart) && (i <= hideStop)) {
+            if (i == hideStart) pages += `<td><a>...</a></td>`;
+        } else {
+            if (i == pageInfo.current) pages += `<td class="ptds" onclick="document.location=this.firstChild.href"><a>${i}</a></td>`;
+            else pages += `<td onclick="document.location=this.firstChild.href"><a href=${pageInfo.knownPages[`P${i}`]}>${i}</a></td>`;
         }
+    }
 
-        GM_saveTab(pageInfo);
+    if (pageInfo.endHigh == null) pages += "<td>?</td>";
 
-        // calc the pages not to show to limit visible pages
-        let knownCount = pageInfo.knownPages.max - pageInfo.knownPages.min;
-        let hideStart = pageInfo.knownPages.max + 1, hideStop = pageInfo.knownPages.min - 1;
-
-        if (knownCount > 10)
-        {
-            if ((pageInfo.current - pageInfo.knownPages.min) > (pageInfo.knownPages.max - pageInfo.current)) {
-                hideStart = pageInfo.knownPages.min + 1;
-                hideStop = hideStart + (knownCount - 10);
-            } else {
-                hideStop = pageInfo.knownPages.max - 1;
-                hideStart = hideStop - (knownCount - 10);
-            }
-        }
-
-        // build paginator html code
-        let pages = "";
-        if (pageInfo.endLow == null) pages += "<td>?</td>";
-
-        for (let i = pageInfo.knownPages.min; i <= pageInfo.knownPages.max; i++) {
-            if ((i >= hideStart) && (i <= hideStop)) {
-                if (i == hideStart) pages += `<td><a>...</a></td>`;
-            } else {
-                if (i == pageInfo.current) pages += `<td class="ptds" onclick="document.location=this.firstChild.href"><a>${i}</a></td>`;
-                else pages += `<td onclick="document.location=this.firstChild.href"><a href=${pageInfo.knownPages[`P${i}`]}>${i}</a></td>`;
-            }
-        }
-
-        if (pageInfo.endHigh == null) pages += "<td>?</td>";
-
-        let relpagerdivs = document.querySelectorAll('.search-relpager-num');
-        relpagerdivs[0].innerHTML = `
+    let relpagerdivs = document.querySelectorAll('.search-relpager-num');
+    relpagerdivs[0].innerHTML = `
   <table class="ptt" style="margin:2px auto 0px">
     <tbody>
       <tr>${pages}</tr>
     </tbody>
   </table>`;
 
-        relpagerdivs[1].innerHTML = `
+    relpagerdivs[1].innerHTML = `
   <table class="ptb" style="margin:1px auto 10px">
     <tbody>
       <tr>${pages}</tr>
     </tbody>
   </table>`;
 
-        // add tab click event handler ...
-        // ... for page buttons
-        document.querySelectorAll('.search-relpager-num td').forEach(function(nav){
-            nav.addEventListener("click", function (ev) {
-                if (ev.target.innerText == "...") {
-                    GM_getTab(function (pageInfo) {
-                        let page = prompt(`Jump to page: (between ${pageInfo.knownPages.min} and ${pageInfo.knownPages.max})`, 0);
-                        if(page != null) {
-                            page = parseInt(page);
+    // add tab click event handler ...
+    // ... for page buttons
+    document.querySelectorAll('.search-relpager-num td').forEach(function(nav){
+        nav.addEventListener("click", function (ev) {
+            if (ev.target.innerText == "...") {
+                let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
+                let page = prompt(`Jump to page: (between ${pageInfo.knownPages.min} and ${pageInfo.knownPages.max})`, 0);
+                if(page != null) {
+                    page = parseInt(page);
 
-                            if ((page >= parseInt(pageInfo.knownPages.min)) && (page <= parseInt(pageInfo.knownPages.max)))
-                            {
-                                pageInfo.current = page;
-                                GM_saveTab(pageInfo);
-                                document.location = pageInfo.knownPages[`P${page}`];
-                            }
-                        }
-                    });
-                } else if (ev.target.innerText != "?") {
-                    GM_getTab(function (pageInfo) {
-                        pageInfo.current = ev.target.innerText;
-                        GM_saveTab(pageInfo);
-                    });
+                    if ((page >= parseInt(pageInfo.knownPages.min)) && (page <= parseInt(pageInfo.knownPages.max)))
+                    {
+                        pageInfo.current = page;
+                        sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
+                        document.location = pageInfo.knownPages[`P${page}`];
+                    }
                 }
-            }, false);
-        });
+            } else if (ev.target.innerText != "?") {
+                let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
+                pageInfo.current = ev.target.innerText;
+                sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
+            }
+        }, false);
     });
 
     // add generic click event handler ...
@@ -549,10 +544,10 @@ const addPageCounter = () => {
         if (ev.target.localName === "span") return
         if ((new URLSearchParams(ev.target.href)).has("jump")) resetPageCounter();
         else {
-            GM_getTab(function (pageInfo) {
-                pageInfo.current = parseInt(pageInfo.current) - 1;
-                GM_saveTab(pageInfo);
-            });
+            let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
+            pageInfo.current = parseInt(pageInfo.current) - 1;
+            sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
+
         }
     }, false);
 
@@ -560,10 +555,10 @@ const addPageCounter = () => {
         if (ev.target.localName === "span") return
         if ((new URLSearchParams(ev.target.href)).has("jump")) resetPageCounter();
         else {
-            GM_getTab(function (pageInfo) {
-                pageInfo.current = parseInt(pageInfo.current) - 1;
-                GM_saveTab(pageInfo);
-            });
+            let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
+            pageInfo.current = parseInt(pageInfo.current) - 1;
+            sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
+
         }
     }, false);
 
@@ -571,10 +566,10 @@ const addPageCounter = () => {
         if (ev.target.localName === "span") return
         if ((new URLSearchParams(ev.target.href)).has("jump")) resetPageCounter();
         else {
-            GM_getTab(function (pageInfo) {
-                pageInfo.current = parseInt(pageInfo.current) + 1;
-                GM_saveTab(pageInfo);
-            });
+            let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
+            pageInfo.current = parseInt(pageInfo.current) + 1;
+            sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
+
         }
     }, false);
 
@@ -582,10 +577,10 @@ const addPageCounter = () => {
         if (ev.target.localName === "span") return
         if ((new URLSearchParams(ev.target.href)).has("jump")) resetPageCounter();
         else {
-            GM_getTab(function (pageInfo) {
-                pageInfo.current = parseInt(pageInfo.current) + 1;
-                GM_saveTab(pageInfo);
-            });
+            let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
+            pageInfo.current = parseInt(pageInfo.current) + 1;
+            sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
+
         }
     }, false);
 
