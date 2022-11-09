@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.09.03
+// @version      2022.11.09.04
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -419,7 +419,6 @@ const addPageCounter = () => {
     if (document.querySelector(".search-relpager-num") === null) return;
 
     let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
-    console.log(pageInfo);
     if (pageInfo == null) {
         pageInfo = {};
         pageInfo.current = 0;
