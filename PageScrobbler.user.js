@@ -77,7 +77,7 @@ const stylesheet = `
   margin: 0 auto;
 }
 
-.search-relpager {
+.search-relpager-top {
   width: 730px;
   margin: 0px auto 0px auto;
   text-align: center;
@@ -201,7 +201,9 @@ const addPageScrobbler = () => {
         }
 
         if (!document.querySelector(".search-relpager")) {
-            hook.insertAdjacentHTML("afterend", `<div class="search-relpager"><span class="search-relpager-num"></span</div>`);
+            let nav = document.querySelectorAll('.searchnav');
+            nav[0].insertAdjacentHTML("afterend", `<div class="search-relpager"><span class="search-relpager-num"></span</div>`);
+            nav[1].insertAdjacentHTML("beforebegin", `<div class="search-relpager"><span class="search-relpager-num"></span</div>`);
         }
 
         updatePageScrobbler();
@@ -488,8 +490,16 @@ const addPageCounter = () => {
 
     if (localStorage.getItem("EHPS-page-endhigh") == null) pages += "<td>?</td>";
 
-    document.querySelector(".search-relpager-num").innerHTML = `
+    let relpagerdivs = document.querySelectorAll('.search-relpager-num');
+    relpagerdivs[0].innerHTML = `
   <table class="ptt" style="margin:2px auto 0px">
+    <tbody>
+      <tr>${pages}</tr>
+    </tbody>
+  </table>`;
+
+    relpagerdivs[1].innerHTML = `
+  <table class="ptb" style="margin:1px auto 10px">
     <tbody>
       <tr>${pages}</tr>
     </tbody>
