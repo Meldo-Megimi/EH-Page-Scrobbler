@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.10.06
+// @version      2022.11.10.07
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -204,27 +204,41 @@ const tryUpdateKnownMaxGID = GID => {
     }
 }
 
-const resetPageCounter = () => {
-    let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
+const resetPageCounter = (pageInfo) => {
     pageInfo.current = 0;
+    pageInfo.path = null;
+    pageInfo.last = null;
     pageInfo.knownPages = { "min": 0, "max": 0 };
     pageInfo.endLow = null;
     pageInfo.endHigh = null;
+    return pageInfo;
+}
+
+const resetPageCounterStorage = () => {
+    let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
+    pageInfo = resetPageCounter(pageInfo);
     sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
 }
 
 const updatePageInfo = async () => {
     let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
     if (pageInfo == null) {
-        pageInfo = {};
-        pageInfo.current = 0;
-        pageInfo.knownPages = { "min": 0, "max": 0 };
-        pageInfo.endLow = null;
-        pageInfo.endHigh = null;
+        pageInfo = resetPageCounter(pageInfo);
     } else {
         pageInfo.current = parseInt(pageInfo.current);
         pageInfo.knownPages.min = parseInt(pageInfo.knownPages.min);
         pageInfo.knownPages.max = parseInt(pageInfo.knownPages.max);
+    }
+
+    if ((sessionStorage.getItem("EHPS-Paginator-Post") == null) && (pageInfo.last != location.href)) {
+        pageInfo = resetPageCounter(pageInfo);
+    } else sessionStorage.removeItem("EHPS-Paginator-Post")
+
+    // check path
+    if (pageInfo.path == null) pageInfo.path = location.pathname;
+    else if (pageInfo.path != location.pathname) {
+        pageInfo = resetPageCounter(pageInfo);
+        pageInfo.path = location.pathname;
     }
 
     if (document.querySelector(".searchnav #uprev").localName === "span") pageInfo.endLow = pageInfo.current;
@@ -242,6 +256,8 @@ const updatePageInfo = async () => {
         if (pageInfo.knownPages.min > pageInfo.current) pageInfo.knownPages.min = pageInfo.current;
         if (pageInfo.knownPages.max < pageInfo.current) pageInfo.knownPages.max = pageInfo.current;
     }
+
+    pageInfo.last = location.href;
 
     // look if next page announced is known
     if ((pageInfo.knownPages[`P${pageInfo.current + 1}`] == null) && (document.querySelector(".searchnav #unext").localName === "a")) {
@@ -421,7 +437,7 @@ const addBaseUIElements = () => {
                     parser.searchParams.delete("next");
                     parser.searchParams.delete("prev");
                     parser.searchParams.delete("f_search");
-                    resetPageCounter();
+                    resetPageCounterStorage();
                     window.location = parser.href + "?f_search=" + encodeURIComponent(searchSelect) + gid;
                 } else {
                     document.getElementById('save_load_text').innerHTML = "Nothing to load";
@@ -524,7 +540,7 @@ ${yearDiv}
             addHoverElement(e.layerX);
 
             document.querySelector(".bar-hover").addEventListener("click", function (ev) {
-                resetPageCounter();
+                resetPageCounterStorage();
             }, false);
         }
 
@@ -654,6 +670,7 @@ const updatePageCounter = async () => {
                     if ((page >= parseInt(pageInfo.knownPages.min)) && (page <= parseInt(pageInfo.knownPages.max))) {
                         pageInfo.current = page;
                         sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
+                        sessionStorage.setItem("EHPS-Paginator-Post", "x");
                         document.location = pageInfo.knownPages[`P${page}`];
                     }
                 }
@@ -661,6 +678,7 @@ const updatePageCounter = async () => {
                 let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
                 pageInfo.current = ev.target.innerText;
                 sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
+                sessionStorage.setItem("EHPS-Paginator-Post", "x");
             }
         }, false);
     });
@@ -669,82 +687,86 @@ const updatePageCounter = async () => {
     // ... for jump buttons
     document.querySelector(".searchnav #uprev").addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
-        if ((new URLSearchParams(ev.target.href)).has("jump")) resetPageCounter();
+        if ((new URLSearchParams(ev.target.href)).has("jump")) resetPageCounterStorage();
         else {
             let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
             pageInfo.current = parseInt(pageInfo.current) - 1;
             sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
+            sessionStorage.setItem("EHPS-Paginator-Post", "x");
         }
     }, false);
 
     document.querySelector(".searchnav #dprev").addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
-        if ((new URLSearchParams(ev.target.href)).has("jump")) resetPageCounter();
+        if ((new URLSearchParams(ev.target.href)).has("jump")) resetPageCounterStorage();
         else {
             let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
             pageInfo.current = parseInt(pageInfo.current) - 1;
             sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
+            sessionStorage.setItem("EHPS-Paginator-Post", "x");
         }
     }, false);
 
     document.querySelector(".searchnav #unext").addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
-        if ((new URLSearchParams(ev.target.href)).has("jump")) resetPageCounter();
+        if ((new URLSearchParams(ev.target.href)).has("jump")) resetPageCounterStorage();
         else {
             let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
             pageInfo.current = parseInt(pageInfo.current) + 1;
             sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
+            sessionStorage.setItem("EHPS-Paginator-Post", "x");
         }
     }, false);
 
     document.querySelector(".searchnav #dnext").addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
-        if ((new URLSearchParams(ev.target.href)).has("jump")) resetPageCounter();
+        if ((new URLSearchParams(ev.target.href)).has("jump")) resetPageCounterStorage();
         else {
             let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
             pageInfo.current = parseInt(pageInfo.current) + 1;
             sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
+            sessionStorage.setItem("EHPS-Paginator-Post", "x");
         }
     }, false);
 
     document.querySelector(".searchnav #ufirst").addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
-        resetPageCounter();
+        resetPageCounterStorage();
     }, false);
 
     document.querySelector(".searchnav #dfirst").addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
-        resetPageCounter();
+        resetPageCounterStorage();
     }, false);
 
     document.querySelector(".searchnav #ulast").addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
-        resetPageCounter();
+        resetPageCounterStorage();
     }, false);
 
     document.querySelector(".searchnav #dlast").addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
-        resetPageCounter();
+        resetPageCounterStorage();
     }, false);
 
     // ... for search button
     let searchButton = document.querySelector("#searchbox form div input:nth-child(2)");
     if (searchButton !== null) {
         searchButton.addEventListener("click", function (ev) {
-            resetPageCounter();
+            resetPageCounterStorage();
         }, false);
     }
 
     // ... for site nav
     document.querySelectorAll('#nb a').forEach(function (nav) {
         nav.addEventListener("click", function (ev) {
-            resetPageCounter();
+            resetPageCounterStorage();
         }, false);
     });
 
     document.querySelectorAll('.dp a').forEach(function (nav) {
         nav.addEventListener("click", function (ev) {
-            resetPageCounter();
+            resetPageCounterStorage();
         }, false);
     });
 }
