@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.10.01
+// @version      2022.11.10.02
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -209,6 +209,58 @@ const resetPageCounter = () => {
     sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
 }
 
+const updatePageInfo = () => {
+    let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
+    if (pageInfo == null) {
+        pageInfo = {};
+        pageInfo.current = 0;
+        pageInfo.knownPages = {"min":0,"max":0};
+        pageInfo.endLow = null;
+        pageInfo.endHigh = null;
+    }
+    else
+    {
+        pageInfo.current = parseInt(pageInfo.current);
+        pageInfo.knownPages.min = parseInt(pageInfo.knownPages.min);
+        pageInfo.knownPages.max = parseInt(pageInfo.knownPages.max);
+    }
+
+    if (document.querySelector(".searchnav #uprev").localName === "span") pageInfo.endLow = pageInfo.current;
+    if (document.querySelector(".searchnav #unext").localName === "span") pageInfo.endHigh = pageInfo.current;
+
+    // do we know the current page?
+    if (pageInfo.knownPages[`P${pageInfo.current}`] == null) {
+        if (window.location.search != "") {
+            pageInfo.knownPages[`P${pageInfo.current}`] = `${window.location.search}`;
+        } else {
+            let maxGID = parseInt(getMaxGID(document), 10) + 1;
+            pageInfo.knownPages[`P${pageInfo.current}`] = `?next=${maxGID}`;
+        }
+
+        if (pageInfo.knownPages.min > pageInfo.current) pageInfo.knownPages.min = pageInfo.current;
+        if (pageInfo.knownPages.max < pageInfo.current) pageInfo.knownPages.max = pageInfo.current;
+    }
+
+    // look if next page announced is known
+    if ((pageInfo.knownPages[`P${pageInfo.current + 1}`] == null) && (document.querySelector(".searchnav #unext").localName === "a")) {
+        pageInfo.knownPages[`P${pageInfo.current + 1}`] = `${(new URL(document.querySelector(".searchnav #unext").href)).search}`;
+
+        if (pageInfo.knownPages.min > pageInfo.current + 1) pageInfo.knownPages.min = pageInfo.current + 1;
+        if (pageInfo.knownPages.max < pageInfo.current + 1) pageInfo.knownPages.max = pageInfo.current + 1;
+    }
+
+    // look if previous page announced is known
+    if ((pageInfo.knownPages[`P${pageInfo.current - 1}`] == null) && (document.querySelector(".searchnav #uprev").localName === "a")) {
+        pageInfo.knownPages[`P${pageInfo.current - 1}`] = `${(new URL(document.querySelector(".searchnav #uprev").href)).search}`;
+
+        if (pageInfo.knownPages.min > pageInfo.current - 1) pageInfo.knownPages.min = pageInfo.current - 1;
+        if (pageInfo.knownPages.max < pageInfo.current - 1) pageInfo.knownPages.max = pageInfo.current - 1;
+    }
+
+    sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
+    return pageInfo;
+}
+
 const addBaseUIElements = () => {
     const url = new URL(location.href);
     if (url.pathname == "/popular") return false;
@@ -406,7 +458,7 @@ const updateBookmark = () => {
     const url = new URL(location.href);
 
     let searchParams = new URLSearchParams(window.location.search);
-    if (searchParams.has('f_search')) {
+    if (searchParams.has('f_search') && (localStorage.getItem("EHPS-DisableBookmark") != "true")) {
         let gid = localStorage.getItem(searchParams.get('f_search'));
         if (gid) {
             document.getElementById('current_bookmark').innerHTML = "Bookmark: " + gid;
@@ -459,54 +511,7 @@ const updatePageCounter = () => {
         return;
     }
 
-    let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
-    if (pageInfo == null) {
-        pageInfo = {};
-        pageInfo.current = 0;
-        pageInfo.knownPages = {"min":0,"max":0};
-        pageInfo.endLow = null;
-        pageInfo.endHigh = null;
-    }
-    else
-    {
-        pageInfo.current = parseInt(pageInfo.current);
-        pageInfo.knownPages.min = parseInt(pageInfo.knownPages.min);
-        pageInfo.knownPages.max = parseInt(pageInfo.knownPages.max);
-    }
-
-    if (document.querySelector(".searchnav #uprev").localName === "span") pageInfo.endLow = pageInfo.current;
-    if (document.querySelector(".searchnav #unext").localName === "span") pageInfo.endHigh = pageInfo.current;
-
-    // do we know the current page?
-    if (pageInfo.knownPages[`P${pageInfo.current}`] == null) {
-        if (window.location.search != "") {
-            pageInfo.knownPages[`P${pageInfo.current}`] = `${window.location.search}`;
-        } else {
-            let maxGID = parseInt(getMaxGID(document), 10) + 1;
-            pageInfo.knownPages[`P${pageInfo.current}`] = `?next=${maxGID}`;
-        }
-
-        if (pageInfo.knownPages.min > pageInfo.current) pageInfo.knownPages.min = pageInfo.current;
-        if (pageInfo.knownPages.max < pageInfo.current) pageInfo.knownPages.max = pageInfo.current;
-    }
-
-    // look if next page announced is known
-    if ((pageInfo.knownPages[`P${pageInfo.current + 1}`] == null) && (document.querySelector(".searchnav #unext").localName === "a")) {
-        pageInfo.knownPages[`P${pageInfo.current + 1}`] = `${(new URL(document.querySelector(".searchnav #unext").href)).search}`;
-
-        if (pageInfo.knownPages.min > pageInfo.current + 1) pageInfo.knownPages.min = pageInfo.current + 1;
-        if (pageInfo.knownPages.max < pageInfo.current + 1) pageInfo.knownPages.max = pageInfo.current + 1;
-    }
-
-    // look if previous page announced is known
-    if ((pageInfo.knownPages[`P${pageInfo.current - 1}`] == null) && (document.querySelector(".searchnav #uprev").localName === "a")) {
-        pageInfo.knownPages[`P${pageInfo.current - 1}`] = `${(new URL(document.querySelector(".searchnav #uprev").href)).search}`;
-
-        if (pageInfo.knownPages.min > pageInfo.current - 1) pageInfo.knownPages.min = pageInfo.current - 1;
-        if (pageInfo.knownPages.max < pageInfo.current - 1) pageInfo.knownPages.max = pageInfo.current - 1;
-    }
-
-    sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
+    let pageInfo = updatePageInfo();
 
     // calc the pages not to show to limit visible pages
     let knownCount = pageInfo.knownPages.max - pageInfo.knownPages.min;
