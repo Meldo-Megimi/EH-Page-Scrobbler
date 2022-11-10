@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.09.04
+// @version      2022.11.10.01
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -46,6 +46,11 @@ const stylesheet = `
   flex-direction: row;
   justify-content: space-between;
 }
+.search-scrobbler .bar-config {
+  color: red;
+  //pointer-events: none;
+  cursor: pointer;
+}
 .search-scrobbler .bar-hover {
   display: block;
   width: 1px;
@@ -81,6 +86,32 @@ const stylesheet = `
   width: 730px;
   margin: 0px auto 0px auto;
   text-align: center;
+}
+
+.search-scrobbler-config-bg {
+  position: fixed;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  display:none;
+  backdrop-filter: blur(2px);
+}
+.search-scrobbler-config-window {
+  background-color: #4f535b;
+  margin: 15% auto;
+  padding: 0px 5px 10px 10px;
+  border: 1px solid black;
+  width: 20%;
+  box-shadow:2px 2px 3px 2px gray;
+  border-radius:7px;
+}
+.search-scrobbler-config-close {
+  text-align: right;
+  font-size:25px;
+  cursor: pointer;
 }
 `;
 
@@ -178,9 +209,9 @@ const resetPageCounter = () => {
     sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
 }
 
-const addPageScrobbler = () => {
+const addBaseUIElements = () => {
     const url = new URL(location.href);
-    if (url.pathname == "/popular") return;
+    if (url.pathname == "/popular") return false;
 
     const addInitialElement = () => {
         const hook = document.querySelector(".searchnav");
@@ -208,12 +239,14 @@ const addPageScrobbler = () => {
             nav[1].insertAdjacentHTML("beforebegin", `<div class="search-relpager"><span class="search-relpager-num"></span</div>`);
         }
 
-        updatePageScrobbler();
+        if (!document.querySelector(".search-scrobbler-config-bg")) {
+            hook.insertAdjacentHTML("beforebegin", `<div class="search-scrobbler-config-bg"></div>`);
+        }
     }
 
     const addEventListeners = () => {
-        var saveButton = document.getElementById("search-save-button");
-        saveButton.addEventListener("click", function () {
+        // bookmark buttons
+        document.getElementById("search-save-button").addEventListener("click", function () {
             let searchParams = new URLSearchParams(window.location.search);
             if (searchParams.has('f_search')) {
                 let f_search = searchParams.get('f_search');
@@ -246,9 +279,7 @@ const addPageScrobbler = () => {
                 }
             }
         }, false);
-
-        var loadButton = document.getElementById("search-load-button");
-        loadButton.addEventListener("click", function () {
+        document.getElementById("search-load-button").addEventListener("click", function () {
             let searchSelect = decodeURIComponent(document.getElementById('search-select').value);
             if (searchSelect != null) {
                 let gid = localStorage.getItem(searchSelect);
@@ -264,9 +295,7 @@ const addPageScrobbler = () => {
                 }
             }
         }, false);
-
-        var deleteButton = document.getElementById("search-delete-button");
-        deleteButton.addEventListener("click", function () {
+        document.getElementById("search-delete-button").addEventListener("click", function () {
             let searchSelect = decodeURIComponent(document.getElementById('search-select').value);
             if (searchSelect != null) {
                 let gid = localStorage.getItem(searchSelect);
@@ -280,6 +309,8 @@ const addPageScrobbler = () => {
 
     addInitialElement();
     addEventListeners();
+
+    return true;
 }
 
 const updatePageScrobbler = () => {
@@ -322,7 +353,7 @@ const updatePageScrobbler = () => {
     </div>
     <div class="bar-labels">
       <div class="bar-max">${maxGID}</div>
-      <div class="bar-min">1</div>
+      <div class="bar-config" title="settings">☆</div><div class="bar-min">1</div>
     </div>
   </div>
   <div class="bar-year-labels">
@@ -360,15 +391,19 @@ ${yearDiv}
 
         const el = document.querySelector(".bar-full .bar");
         if (el !== null) el.addEventListener("mousemove", handler);
+
+        // config open button
+        document.querySelector(".search-scrobbler .bar-config").addEventListener("click", function () {
+            document.querySelector(".search-scrobbler-config-bg").style.display = "block";
+        }, false);
     }
 
     updateInitialElement();
     addEventListeners();
 }
 
-const showBookmark = GID => {
+const updateBookmark = () => {
     const url = new URL(location.href);
-    if (url.pathname == "/popular") return;
 
     let searchParams = new URLSearchParams(window.location.search);
     if (searchParams.has('f_search')) {
@@ -383,7 +418,7 @@ const showBookmark = GID => {
         document.querySelectorAll('.search-save-button').forEach(function(key){key.style.display='none';});
     }
 
-    if (localStorage.length > 1)
+    if ((localStorage.length > 1) && (localStorage.getItem("EHPS-DisableBookmark") != "true"))
     {
         let f_search = searchParams.get('f_search');
         let searchSelect = document.getElementById('search-select');
@@ -415,8 +450,14 @@ const showBookmark = GID => {
     }
 }
 
-const addPageCounter = () => {
+const updatePageCounter = () => {
     if (document.querySelector(".search-relpager-num") === null) return;
+    if (localStorage.getItem("EHPS-DisablePageinator") == "true") {
+        document.querySelectorAll('.search-relpager-num').forEach(function(nav){
+            nav.innerHTML = null;
+        });
+        return;
+    }
 
     let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
     if (pageInfo == null) {
@@ -625,13 +666,57 @@ const addPageCounter = () => {
     });
 }
 
+const updateConfig = () => {
+    if (document.querySelector(".search-scrobbler-config-bg") === null) return;
+
+    document.querySelector('.search-scrobbler-config-bg').innerHTML = `
+  <div class="search-scrobbler-config-window">
+    <div class="search-scrobbler-config-close">&times;</div>
+    <div>
+      <input type="checkbox" id="search-scrobbler-config-disBookmark"><label for="search-scrobbler-config-disBookmark"> Disable bookmarks</label><br>
+      <input type="checkbox" id="search-scrobbler-config-disPageinator"><label for="search-scrobbler-config-disPageinator"> Disable pages</label><br>
+    </div>
+  </div>`;
+
+    // config close button
+    document.querySelector(".search-scrobbler-config-close").addEventListener("click", function () {
+        document.querySelector(".search-scrobbler-config-bg").style.display = "none";
+    }, false);
+
+    document.querySelector(".search-scrobbler-config-bg").addEventListener("click", function () {
+        document.querySelector(".search-scrobbler-config-bg").style.display = "none";
+    }, false);
+
+    document.querySelector(".search-scrobbler-config-window").addEventListener("click", function (e) {
+        e.stopPropagation();
+    }, false);
+
+    // config buttons
+    document.getElementById("search-scrobbler-config-disBookmark").addEventListener("click", function (e) {
+        localStorage.setItem("EHPS-DisableBookmark", e.target.checked);
+        updateBookmark();
+    }, false);
+
+    document.getElementById("search-scrobbler-config-disPageinator").addEventListener("click", function (e) {
+        localStorage.setItem("EHPS-DisablePageinator", e.target.checked);
+        updatePageCounter();
+    }, false);
+
+    if (localStorage.getItem("EHPS-DisableBookmark") == "true") document.getElementById("search-scrobbler-config-disBookmark").checked=true;
+    if (localStorage.getItem("EHPS-DisablePageinator") == "true") document.getElementById("search-scrobbler-config-disPageinator").checked=true;
+}
+
 const main = () => {
     if (!hasGalleryListTable()) return;
     tryUpdateKnownMaxGID();
     injectStylesheet();
-    addPageScrobbler();
-    showBookmark();
-    addPageCounter();
+    if (addBaseUIElements())
+    {
+        updatePageScrobbler();
+        updateConfig();
+        updateBookmark();
+        updatePageCounter();
+    }
 }
 
 main();
