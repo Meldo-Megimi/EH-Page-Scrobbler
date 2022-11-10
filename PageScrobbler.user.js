@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.10.04
+// @version      2022.11.10.05
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -14,9 +14,11 @@
 // @grant        GM_addStyle
 // ==/UserScript==
 
+const defaultBarWidth = 730;
+
 const stylesheet = `
 .search-scrobbler {
-  width: 730px;
+  width: ${defaultBarWidth}px;
   outline: 1px cyan dashed;
   margin: 0 auto;
   padding: 20px 0 0 0;
@@ -26,7 +28,7 @@ const stylesheet = `
 }
 .search-scrobbler .bar {
   display: block;
-  width: 730px;
+  width: ${defaultBarWidth}px;
   height: 25px;
   border: 2px solid #3c3c3c;
   box-sizing: border-box;
@@ -78,12 +80,12 @@ const stylesheet = `
 }
 
 .saved-search {
-  width: 730px;
+  width: ${defaultBarWidth}px;
   margin: 0 auto;
 }
 
 .search-relpager-top {
-  width: 730px;
+  width: ${defaultBarWidth}px;
   margin: 0px auto 0px auto;
   text-align: center;
 }
@@ -165,7 +167,7 @@ const getMaxGID = doc => {
 }
 
 const tryUpdateKnownMaxGID = GID => {
-    if (localStorage.getItem("EHPS-maxGID") === null) { localStorage.setItem("EHPS-maxGID", -1) }
+    if (localStorage.getItem("EHPS-maxGID") === null) localStorage.setItem("EHPS-maxGID", -1);
 
     const url = new URL(location.href);
     if ((url.pathname !== "/") || (url.search !== "")) {
@@ -177,11 +179,11 @@ const tryUpdateKnownMaxGID = GID => {
         }).then((response) => {
             return response.text()
         }).then((res) => {
-            let dom = document.implementation.createHTMLDocument("New Document");
-            dom.write(res);
-            dom.close();
+            let doc = document.implementation.createHTMLDocument("New Document");
+            doc.write(res);
+            doc.close();
 
-            let maxGID = getMaxGID(dom);
+            let maxGID = getMaxGID(doc);
             let currentMaxGID = localStorage.getItem("EHPS-maxGID");
             if ((currentMaxGID === null) || (currentMaxGID < maxGID)) {
                 localStorage.setItem("EHPS-maxGID", maxGID);
@@ -191,7 +193,6 @@ const tryUpdateKnownMaxGID = GID => {
         }).catch((error) => {
             console.log(error)
         });
-
     } else {
         // we are on the frontpage
         let maxGID = getMaxGID(document);
@@ -219,8 +220,7 @@ const updatePageInfo = async () => {
         pageInfo.knownPages = { "min": 0, "max": 0 };
         pageInfo.endLow = null;
         pageInfo.endHigh = null;
-    }
-    else {
+    } else {
         pageInfo.current = parseInt(pageInfo.current);
         pageInfo.knownPages.min = parseInt(pageInfo.knownPages.min);
         pageInfo.knownPages.max = parseInt(pageInfo.knownPages.max);
@@ -468,7 +468,7 @@ const updatePageScrobbler = () => {
         if (cursorWidth < 0.2) cursorWidth = 0.2;
 
         let yearDiv = ``;
-        for (var key in gidYear) {
+        for (let key in gidYear) {
             yearDiv += `<div class="bar-year-label" style="left: ${(1.0 - key / maxGID) * 100}% ">|${gidYear[key]}</div>`;
         }
 
@@ -487,6 +487,14 @@ const updatePageScrobbler = () => {
   <div class="bar-year-labels">
 ${yearDiv}
   </div>`;
+
+        if (localStorage.getItem("EHPS-FullWidthBar") == "true") {
+            document.querySelector(".search-scrobbler").style.width = "100%";
+            document.querySelector(".search-scrobbler .bar").style.width = "100%";
+        } else {
+            document.querySelector(".search-scrobbler").style.width = null;
+            document.querySelector(".search-scrobbler .bar").style.width = null;
+        }
     }
 
     const addEventListeners = () => {
@@ -495,18 +503,16 @@ ${yearDiv}
             document.querySelector(".bar-hover")?.remove();
 
             const maxGID = localStorage.getItem("EHPS-maxGID");
-            const width = 730;
-            const hoverGID = ((1.0 - offset / 730) * maxGID).toFixed(0);
+            const width = document.querySelector(".search-scrobbler .bar").clientWidth;
+            const hoverGID = ((1.0 - offset / width) * maxGID).toFixed(0);
 
             const url = new URL(location.href);
             url.searchParams.set("next", hoverGID);
 
-            const hook = document.querySelector(".bar-full .bar");
-            const el = `
+            document.querySelector(".bar-full .bar").insertAdjacentHTML("afterbegin", `
 <a class="bar-hover" href="${url}" style="left: ${offset - 2}px; width: 2px">
   <div class="bar-hovertext">${hoverGID}</div>
-</a>`;
-            hook.insertAdjacentHTML("afterbegin", el);
+</a>`);
         }
 
         const handler = e => {
@@ -553,9 +559,7 @@ const updateBookmark = () => {
                 let opt = document.createElement('option');
                 opt.text = key;
                 opt.value = encodeURIComponent(key);
-                if (key == f_search) {
-                    opt.selected = true;
-                }
+                if (key == f_search) opt.selected = true;
 
                 searchSelect.add(opt);
             }
@@ -665,7 +669,6 @@ const updatePageCounter = async () => {
             let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
             pageInfo.current = parseInt(pageInfo.current) - 1;
             sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
-
         }
     }, false);
 
@@ -676,7 +679,6 @@ const updatePageCounter = async () => {
             let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
             pageInfo.current = parseInt(pageInfo.current) - 1;
             sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
-
         }
     }, false);
 
@@ -687,7 +689,6 @@ const updatePageCounter = async () => {
             let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
             pageInfo.current = parseInt(pageInfo.current) + 1;
             sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
-
         }
     }, false);
 
@@ -698,7 +699,6 @@ const updatePageCounter = async () => {
             let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
             pageInfo.current = parseInt(pageInfo.current) + 1;
             sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
-
         }
     }, false);
 
@@ -753,6 +753,7 @@ const updateConfig = () => {
     <div>
       <input type="checkbox" id="search-scrobbler-config-disBookmark"><label for="search-scrobbler-config-disBookmark"> Disable bookmarks</label><br>
       <input type="checkbox" id="search-scrobbler-config-disPageinator"><label for="search-scrobbler-config-disPageinator"> Disable pages</label><br>
+      <input type="checkbox" id="search-scrobbler-config-fullWidthBar"><label for="search-scrobbler-config-fullWidthBar"> Use full width for bar</label><br>
       <input type="checkbox" id="search-scrobbler-config-enlPageprefetch"><label for="search-scrobbler-config-enlPageprefetch"> Enable page prefetch (+/- ${maxPrefetch} pages)</label><br>
       <div style="padding: 2px 30px;color:red;font-weight:bold;">Be careful with prefetch as it creates a lot of page requests and the server will block you for some time if you reaches a certain limit in a timeframe</div>
     </div>
@@ -782,6 +783,11 @@ const updateConfig = () => {
         updatePageCounter();
     }, false);
 
+    document.getElementById("search-scrobbler-config-fullWidthBar").addEventListener("click", function (e) {
+        localStorage.setItem("EHPS-FullWidthBar", e.target.checked);
+        updatePageScrobbler();
+    }, false);
+
     document.getElementById("search-scrobbler-config-enlPageprefetch").addEventListener("click", function (e) {
         localStorage.setItem("EHPS-EnablePageinatorPrefetch", e.target.checked);
         updatePageCounter();
@@ -789,6 +795,7 @@ const updateConfig = () => {
 
     if (localStorage.getItem("EHPS-DisableBookmark") == "true") document.getElementById("search-scrobbler-config-disBookmark").checked = true;
     if (localStorage.getItem("EHPS-DisablePageinator") == "true") document.getElementById("search-scrobbler-config-disPageinator").checked = true;
+    if (localStorage.getItem("EHPS-FullWidthBar") == "true") document.getElementById("search-scrobbler-config-fullWidthBar").checked = true;
     if (localStorage.getItem("EHPS-EnablePageinatorPrefetch") == "true") document.getElementById("search-scrobbler-config-enlPageprefetch").checked = true;
 }
 
