@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.10.03
+// @version      2022.11.10.04
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -116,21 +116,23 @@ const stylesheet = `
 `;
 
 const gidYear = {
-    74629:2008,
-    190496:2009,
-    321076:2010,
-    449183:2011,
-    553117:2012,
-    660230:2013,
-    771830:2014,
-    888870:2015,
-    1012224:2016,
-    1162942:2017,
-    1338484:2018,
-    1543397:2019,
-    1813647:2020,
-    2100270:2021
+    74629: 2008,
+    190496: 2009,
+    321076: 2010,
+    449183: 2011,
+    553117: 2012,
+    660230: 2013,
+    771830: 2014,
+    888870: 2015,
+    1012224: 2016,
+    1162942: 2017,
+    1338484: 2018,
+    1543397: 2019,
+    1813647: 2020,
+    2100270: 2021
 };
+
+const maxPrefetch = 5;
 
 const injectStylesheet = () => {
     if (typeof GM_addStyle != "undefined") {
@@ -163,7 +165,7 @@ const getMaxGID = doc => {
 }
 
 const tryUpdateKnownMaxGID = GID => {
-    if (localStorage.getItem("EHPS-maxGID") === null) {localStorage.setItem("EHPS-maxGID", -1)}
+    if (localStorage.getItem("EHPS-maxGID") === null) { localStorage.setItem("EHPS-maxGID", -1) }
 
     const url = new URL(location.href);
     if ((url.pathname !== "/") || (url.search !== "")) {
@@ -203,23 +205,22 @@ const tryUpdateKnownMaxGID = GID => {
 const resetPageCounter = () => {
     let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
     pageInfo.current = 0;
-    pageInfo.knownPages = {"min":0,"max":0};
+    pageInfo.knownPages = { "min": 0, "max": 0 };
     pageInfo.endLow = null;
     pageInfo.endHigh = null;
     sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
 }
 
-const updatePageInfo = () => {
+const updatePageInfo = async () => {
     let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
     if (pageInfo == null) {
         pageInfo = {};
         pageInfo.current = 0;
-        pageInfo.knownPages = {"min":0,"max":0};
+        pageInfo.knownPages = { "min": 0, "max": 0 };
         pageInfo.endLow = null;
         pageInfo.endHigh = null;
     }
-    else
-    {
+    else {
         pageInfo.current = parseInt(pageInfo.current);
         pageInfo.knownPages.min = parseInt(pageInfo.knownPages.min);
         pageInfo.knownPages.max = parseInt(pageInfo.knownPages.max);
@@ -257,7 +258,86 @@ const updatePageInfo = () => {
         if (pageInfo.knownPages.max < pageInfo.current - 1) pageInfo.knownPages.max = pageInfo.current - 1;
     }
 
+    if (localStorage.getItem("EHPS-EnablePageinatorPrefetch") == "true") pageInfo = await prefetchPageInfo(pageInfo);
+
     sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
+    return pageInfo;
+}
+
+const fetchDocument = async (url) => {
+    try {
+        let res = await fetch(url);
+        let doc = document.implementation.createHTMLDocument("New Document");
+        doc.write(await res.text());
+        doc.close();
+        return doc;
+    } catch (error) {
+        console.log(error);
+        return document.implementation.createHTMLDocument("New Document");
+    }
+}
+
+const prefetchPrev = async (pageInfo, count) => {
+    for (let i = pageInfo.current; i > pageInfo.current - count; i--) {
+        if ((pageInfo.knownPages[`P${i}`] == null) && (i > (pageInfo.endLow ?? Number.MIN_SAFE_INTEGER))) {
+            if (pageInfo.knownPages[`P${i + 1}`] != null) {
+                let doc = await fetchDocument(`${location.origin}${location.pathname}${pageInfo.knownPages[`P${i + 1}`]}`);
+                let jumpElement = doc.querySelector(".searchnav #uprev");
+                if (jumpElement != null) {
+                    if (jumpElement.localName === "span") pageInfo.endLow = i;
+                    if (jumpElement.localName === "a") {
+                        pageInfo.knownPages[`P${i}`] = `${(new URL(jumpElement.href)).search}`;
+
+                        if (pageInfo.knownPages.min > i) pageInfo.knownPages.min = i;
+                        if (pageInfo.knownPages.max < i) pageInfo.knownPages.max = i;
+                    }
+                }
+            }
+        }
+    }
+
+    return pageInfo;
+}
+
+const prefetchNext = async (pageInfo, count) => {
+    for (let i = pageInfo.current; i < pageInfo.current + count; i++) {
+        if ((pageInfo.knownPages[`P${i}`] == null) && (i < (pageInfo.endHigh ?? Number.MAX_SAFE_INTEGER))) {
+            if (pageInfo.knownPages[`P${i - 1}`] != null) {
+                let doc = await fetchDocument(`${location.origin}${location.pathname}${pageInfo.knownPages[`P${i - 1}`]}`);
+                let jumpElement = doc.querySelector(".searchnav #unext");
+                if (jumpElement != null) {
+                    if (jumpElement.localName === "span") pageInfo.endHigh = i;
+                    if (jumpElement.localName === "a") {
+                        pageInfo.knownPages[`P${i}`] = `${(new URL(jumpElement.href)).search}`;
+
+                        if (pageInfo.knownPages.min > i) pageInfo.knownPages.min = i;
+                        if (pageInfo.knownPages.max < i) pageInfo.knownPages.max = i;
+                    }
+                }
+            }
+        }
+    }
+
+    return pageInfo;
+}
+
+const prefetchPageInfo = async (pageInfo) => {
+    // prefetch prev pagees
+    pageInfo = await prefetchPrev(pageInfo, maxPrefetch + 1);
+
+    let nextCount = maxPrefetch + 1;
+    let knownCount = pageInfo.knownPages.max - pageInfo.knownPages.min + 1;
+    if (knownCount <= maxPrefetch + 1) nextCount += maxPrefetch + pageInfo.knownPages.min;
+
+    // prefetch next pages to fill pages
+    pageInfo = await prefetchNext(pageInfo, nextCount);
+
+    // we do not have enough next pages, try with more prev again
+    knownCount = pageInfo.knownPages.max - pageInfo.knownPages.min + 1;
+    if (knownCount < (maxPrefetch * 2) + 1) {
+        pageInfo = await prefetchPrev(pageInfo, maxPrefetch + (((maxPrefetch * 2) + 1) - knownCount) + 1);
+    }
+
     return pageInfo;
 }
 
@@ -323,7 +403,7 @@ const addBaseUIElements = () => {
                     } else { // Thumbnail
                         next = document.querySelector(".itg .gl1t:first-child a").href.match(/\/(\d+)\//)?.[1];
                     }
-                    localStorage.setItem(f_search, "&next=" + (parseInt(next,10)+1));
+                    localStorage.setItem(f_search, "&next=" + (parseInt(next, 10) + 1));
 
                     updateBookmark();
                 }
@@ -366,18 +446,16 @@ const addBaseUIElements = () => {
 const updatePageScrobbler = () => {
     const updateInitialElement = () => {
         let maxGID = localStorage.getItem("EHPS-maxGID");
-        let firstGID = maxGID, lastGID = 1;
+        let firstGID = maxGID, lastGID = maxGID;
         if (!!document.querySelector(".itg tr .glname a")) { // Minimal and Compact
-            firstGID = parseInt(document.querySelector(".itg tr:nth-child(2) .glname a").href.match(/\/(\d+)\//)?.[1],10);
-            lastGID = parseInt(document.querySelector(".itg tr:last-child .glname a").href.match(/\/(\d+)\//)?.[1],10);
+            firstGID = parseInt(document.querySelector(".itg tr:nth-child(2) .glname a").href.match(/\/(\d+)\//)?.[1], 10);
+            lastGID = parseInt(document.querySelector(".itg tr:last-child .glname a").href.match(/\/(\d+)\//)?.[1], 10);
         } else if (!!document.querySelector(".itg tr a")) { // Extended
-            firstGID = parseInt(document.querySelector(".itg tr:first-child a").href.match(/\/(\d+)\//)?.[1],10);
-            lastGID = parseInt(document.querySelector(".itg tr:last-child a").href.match(/\/(\d+)\//)?.[1],10);
+            firstGID = parseInt(document.querySelector(".itg tr:first-child a").href.match(/\/(\d+)\//)?.[1], 10);
+            lastGID = parseInt(document.querySelector(".itg tr:last-child a").href.match(/\/(\d+)\//)?.[1], 10);
         } else if (!!document.querySelector(".itg .gl1t a")) { // Thumbnail
-            firstGID = parseInt(document.querySelector(".itg .gl1t:first-child a").href.match(/\/(\d+)\//)?.[1],10);
-            lastGID = parseInt(document.querySelector(".itg .gl1t:last-child a").href.match(/\/(\d+)\//)?.[1],10);
-        } else {
-            return;
+            firstGID = parseInt(document.querySelector(".itg .gl1t:first-child a").href.match(/\/(\d+)\//)?.[1], 10);
+            lastGID = parseInt(document.querySelector(".itg .gl1t:last-child a").href.match(/\/(\d+)\//)?.[1], 10);
         }
 
         if (maxGID < firstGID) {
@@ -460,17 +538,16 @@ const updateBookmark = () => {
         let gid = localStorage.getItem(searchParams.get('f_search'));
         if (!gid) document.getElementById('save_load_text').innerHTML = "No bookmark found for this search.";
 
-        document.querySelectorAll('.search-save-button').forEach(function(key){key.style.display='';});
+        document.querySelectorAll('.search-save-button').forEach(function (key) { key.style.display = ''; });
     } else {
-        document.querySelectorAll('.search-save-button').forEach(function(key){key.style.display='none';});
+        document.querySelectorAll('.search-save-button').forEach(function (key) { key.style.display = 'none'; });
     }
 
-    if ((localStorage.length > 1) && (localStorage.getItem("EHPS-DisableBookmark") != "true"))
-    {
+    if ((localStorage.length > 1) && (localStorage.getItem("EHPS-DisableBookmark") != "true")) {
         let f_search = searchParams.get('f_search');
         let searchSelect = document.getElementById('search-select');
-        searchSelect.options.length=0
-        Object.keys(localStorage).forEach(function(key){
+        searchSelect.options.length = 0
+        Object.keys(localStorage).forEach(function (key) {
             let value = localStorage.getItem(key);
             if (value.startsWith("&next") || value.startsWith("&prev")) {
                 let opt = document.createElement('option');
@@ -485,38 +562,37 @@ const updateBookmark = () => {
         });
 
         if (searchSelect.options.length !== 0) {
-            document.querySelectorAll('.search-list').forEach(function(key){key.style.display='';});
-            document.querySelectorAll('.search-load-button').forEach(function(key){key.style.display='';});
+            document.querySelectorAll('.search-list').forEach(function (key) { key.style.display = ''; });
+            document.querySelectorAll('.search-load-button').forEach(function (key) { key.style.display = ''; });
         } else {
-            document.querySelectorAll('.search-list').forEach(function(key){key.style.display='none';});
-            document.querySelectorAll('.search-load-button').forEach(function(key){key.style.display='none';});
+            document.querySelectorAll('.search-list').forEach(function (key) { key.style.display = 'none'; });
+            document.querySelectorAll('.search-load-button').forEach(function (key) { key.style.display = 'none'; });
         }
     } else {
-        document.querySelectorAll('.search-list').forEach(function(key){key.style.display='none';});
-        document.querySelectorAll('.search-load-button').forEach(function(key){key.style.display='none';});
+        document.querySelectorAll('.search-list').forEach(function (key) { key.style.display = 'none'; });
+        document.querySelectorAll('.search-load-button').forEach(function (key) { key.style.display = 'none'; });
     }
 
-    if (localStorage.getItem("EHPS-DisableBookmark") == "true") document.getElementById('save_load_text').style.display='none'
-    else document.getElementById('save_load_text').style.display=''
+    if (localStorage.getItem("EHPS-DisableBookmark") == "true") document.getElementById('save_load_text').style.display = 'none'
+    else document.getElementById('save_load_text').style.display = ''
 }
 
-const updatePageCounter = () => {
+const updatePageCounter = async () => {
     if (document.querySelector(".search-relpager-num") === null) return;
     if (localStorage.getItem("EHPS-DisablePageinator") == "true") {
-        document.querySelectorAll('.search-relpager-num').forEach(function(nav){
+        document.querySelectorAll('.search-relpager-num').forEach(function (nav) {
             nav.innerHTML = null;
         });
         return;
     }
 
-    let pageInfo = updatePageInfo();
+    let pageInfo = await updatePageInfo();
 
     // calc the pages not to show to limit visible pages
     let knownCount = pageInfo.knownPages.max - pageInfo.knownPages.min;
     let hideStart = pageInfo.knownPages.max + 1, hideStop = pageInfo.knownPages.min - 1;
 
-    if (knownCount > 10)
-    {
+    if (knownCount > 10) {
         if ((pageInfo.current - pageInfo.knownPages.min) > (pageInfo.knownPages.max - pageInfo.current)) {
             hideStart = pageInfo.knownPages.min + 1;
             hideStop = hideStart + (knownCount - 10);
@@ -558,16 +634,15 @@ const updatePageCounter = () => {
 
     // add tab click event handler ...
     // ... for page buttons
-    document.querySelectorAll('.search-relpager-num td').forEach(function(nav){
+    document.querySelectorAll('.search-relpager-num td').forEach(function (nav) {
         nav.addEventListener("click", function (ev) {
             if (ev.target.innerText == "...") {
                 let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
                 let page = prompt(`Jump to page: (between ${pageInfo.knownPages.min} and ${pageInfo.knownPages.max})`, 0);
-                if(page != null) {
+                if (page != null) {
                     page = parseInt(page);
 
-                    if ((page >= parseInt(pageInfo.knownPages.min)) && (page <= parseInt(pageInfo.knownPages.max)))
-                    {
+                    if ((page >= parseInt(pageInfo.knownPages.min)) && (page <= parseInt(pageInfo.knownPages.max))) {
                         pageInfo.current = page;
                         sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
                         document.location = pageInfo.knownPages[`P${page}`];
@@ -656,13 +731,13 @@ const updatePageCounter = () => {
     }
 
     // ... for site nav
-    document.querySelectorAll('#nb a').forEach(function(nav){
+    document.querySelectorAll('#nb a').forEach(function (nav) {
         nav.addEventListener("click", function (ev) {
             resetPageCounter();
         }, false);
     });
 
-    document.querySelectorAll('.dp a').forEach(function(nav){
+    document.querySelectorAll('.dp a').forEach(function (nav) {
         nav.addEventListener("click", function (ev) {
             resetPageCounter();
         }, false);
@@ -678,6 +753,8 @@ const updateConfig = () => {
     <div>
       <input type="checkbox" id="search-scrobbler-config-disBookmark"><label for="search-scrobbler-config-disBookmark"> Disable bookmarks</label><br>
       <input type="checkbox" id="search-scrobbler-config-disPageinator"><label for="search-scrobbler-config-disPageinator"> Disable pages</label><br>
+      <input type="checkbox" id="search-scrobbler-config-enlPageprefetch"><label for="search-scrobbler-config-enlPageprefetch"> Enable page prefetch (+/- ${maxPrefetch} pages)</label><br>
+      <div style="padding: 2px 30px;color:red;font-weight:bold;">Be careful with prefetch as it creates a lot of page requests and the server will block you for some time if you reaches a certain limit in a timeframe</div>
     </div>
   </div>`;
 
@@ -705,16 +782,21 @@ const updateConfig = () => {
         updatePageCounter();
     }, false);
 
-    if (localStorage.getItem("EHPS-DisableBookmark") == "true") document.getElementById("search-scrobbler-config-disBookmark").checked=true;
-    if (localStorage.getItem("EHPS-DisablePageinator") == "true") document.getElementById("search-scrobbler-config-disPageinator").checked=true;
+    document.getElementById("search-scrobbler-config-enlPageprefetch").addEventListener("click", function (e) {
+        localStorage.setItem("EHPS-EnablePageinatorPrefetch", e.target.checked);
+        updatePageCounter();
+    }, false);
+
+    if (localStorage.getItem("EHPS-DisableBookmark") == "true") document.getElementById("search-scrobbler-config-disBookmark").checked = true;
+    if (localStorage.getItem("EHPS-DisablePageinator") == "true") document.getElementById("search-scrobbler-config-disPageinator").checked = true;
+    if (localStorage.getItem("EHPS-EnablePageinatorPrefetch") == "true") document.getElementById("search-scrobbler-config-enlPageprefetch").checked = true;
 }
 
 const main = () => {
     if (!hasGalleryListTable()) return;
     tryUpdateKnownMaxGID();
     injectStylesheet();
-    if (addBaseUIElements())
-    {
+    if (addBaseUIElements()) {
         updatePageScrobbler();
         updateConfig();
         updateBookmark();
