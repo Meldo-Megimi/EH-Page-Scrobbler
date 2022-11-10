@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.10.02
+// @version      2022.11.10.03
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -281,7 +281,7 @@ const addBaseUIElements = () => {
   </select>
   <input class="search-load-button" id="search-load-button" type="button" value="Load"></input>
   <input class="search-load-button" id="search-delete-button" type="button" value="Remove"></input>
-  <span id="current_bookmark"></span>&nbsp&nbsp&nbsp<span id="save_load_text"></span>
+  <span id="save_load_text"></span>
 </div>`);
         }
 
@@ -306,16 +306,14 @@ const addBaseUIElements = () => {
                     let next = searchParams.get('next');
                     localStorage.setItem(f_search, "&next=" + next);
                     document.getElementById('save_load_text').innerHTML = "Saved (next) GID " + next + " for search " + f_search;
-                    document.getElementById('current_bookmark').innerHTML = "Bookmark: " + next + "  ";
 
-                    showBookmark();
+                    updateBookmark();
                 } else if (searchParams.has('prev')) {
                     let prev = searchParams.get('prev');
                     localStorage.setItem(f_search, "&prev=" + prev);
                     document.getElementById('save_load_text').innerHTML = "Saved (prev) GID " + prev + " for search " + f_search;
-                    document.getElementById('current_bookmark').innerHTML = "Bookmark: " + prev + "  ";
 
-                    showBookmark();
+                    updateBookmark();
                 } else {
                     let next;
                     if (!!document.querySelector(".itg tr .glname a")) { // Minimal and Compact
@@ -327,7 +325,7 @@ const addBaseUIElements = () => {
                     }
                     localStorage.setItem(f_search, "&next=" + (parseInt(next,10)+1));
 
-                    showBookmark();
+                    updateBookmark();
                 }
             }
         }, false);
@@ -353,7 +351,7 @@ const addBaseUIElements = () => {
                 let gid = localStorage.getItem(searchSelect);
                 if (gid) {
                     localStorage.removeItem(searchSelect);
-                    showBookmark();
+                    updateBookmark();
                 }
             }
         }, false);
@@ -460,11 +458,8 @@ const updateBookmark = () => {
     let searchParams = new URLSearchParams(window.location.search);
     if (searchParams.has('f_search') && (localStorage.getItem("EHPS-DisableBookmark") != "true")) {
         let gid = localStorage.getItem(searchParams.get('f_search'));
-        if (gid) {
-            document.getElementById('current_bookmark').innerHTML = "Bookmark: " + gid;
-        } else {
-            document.getElementById('current_bookmark').innerHTML = "No bookmark found for this search.";
-        }
+        if (!gid) document.getElementById('save_load_text').innerHTML = "No bookmark found for this search.";
+
         document.querySelectorAll('.search-save-button').forEach(function(key){key.style.display='';});
     } else {
         document.querySelectorAll('.search-save-button').forEach(function(key){key.style.display='none';});
@@ -500,6 +495,9 @@ const updateBookmark = () => {
         document.querySelectorAll('.search-list').forEach(function(key){key.style.display='none';});
         document.querySelectorAll('.search-load-button').forEach(function(key){key.style.display='none';});
     }
+
+    if (localStorage.getItem("EHPS-DisableBookmark") == "true") document.getElementById('save_load_text').style.display='none'
+    else document.getElementById('save_load_text').style.display=''
 }
 
 const updatePageCounter = () => {
