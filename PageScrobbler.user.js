@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.10.05
+// @version      2022.11.10.06
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -168,6 +168,7 @@ const getMaxGID = doc => {
 
 const tryUpdateKnownMaxGID = GID => {
     if (localStorage.getItem("EHPS-maxGID") === null) localStorage.setItem("EHPS-maxGID", -1);
+    if (document.querySelector(".searchnav") == null) return;
 
     const url = new URL(location.href);
     if ((url.pathname !== "/") || (url.search !== "")) {
@@ -342,11 +343,11 @@ const prefetchPageInfo = async (pageInfo) => {
 }
 
 const addBaseUIElements = () => {
-    const url = new URL(location.href);
-    if (url.pathname == "/popular") return false;
+    if ((new URL(location.href)).pathname == "/popular") return false;
 
     const addInitialElement = () => {
         const hook = document.querySelector(".searchnav");
+        if (hook == null) return false;
 
         if (!document.querySelector(".search-scrobbler")) {
             hook.insertAdjacentHTML("beforebegin", `<div class="search-scrobbler"></div>`);
@@ -374,11 +375,13 @@ const addBaseUIElements = () => {
         if (!document.querySelector(".search-scrobbler-config-bg")) {
             hook.insertAdjacentHTML("beforebegin", `<div class="search-scrobbler-config-bg"></div>`);
         }
+
+        return true;
     }
 
     const addEventListeners = () => {
         // bookmark buttons
-        document.getElementById("search-save-button").addEventListener("click", function () {
+        document.getElementById("search-save-button")?.addEventListener("click", function () {
             let searchParams = new URLSearchParams(window.location.search);
             if (searchParams.has('f_search')) {
                 let f_search = searchParams.get('f_search');
@@ -409,7 +412,7 @@ const addBaseUIElements = () => {
                 }
             }
         }, false);
-        document.getElementById("search-load-button").addEventListener("click", function () {
+        document.getElementById("search-load-button")?.addEventListener("click", function () {
             let searchSelect = decodeURIComponent(document.getElementById('search-select').value);
             if (searchSelect != null) {
                 let gid = localStorage.getItem(searchSelect);
@@ -425,7 +428,7 @@ const addBaseUIElements = () => {
                 }
             }
         }, false);
-        document.getElementById("search-delete-button").addEventListener("click", function () {
+        document.getElementById("search-delete-button")?.addEventListener("click", function () {
             let searchSelect = decodeURIComponent(document.getElementById('search-select').value);
             if (searchSelect != null) {
                 let gid = localStorage.getItem(searchSelect);
@@ -437,13 +440,15 @@ const addBaseUIElements = () => {
         }, false);
     }
 
-    addInitialElement();
-    addEventListeners();
-
-    return true;
+    if (addInitialElement()) {
+        addEventListeners();
+        return true;
+    } else return false;
 }
 
 const updatePageScrobbler = () => {
+    if (document.querySelector(".searchnav") == null) return false;
+
     const updateInitialElement = () => {
         let maxGID = localStorage.getItem("EHPS-maxGID");
         let firstGID = maxGID, lastGID = maxGID;
@@ -481,7 +486,7 @@ const updatePageScrobbler = () => {
     </div>
     <div class="bar-labels">
       <div class="bar-max">${maxGID}</div>
-      <div class="bar-config" title="settings">☆</div><div class="bar-min">1</div>
+      <div class="bar-config" title="EH-Page-Scrobbler settings">&#x2699;</div><div class="bar-min">1</div>
     </div>
   </div>
   <div class="bar-year-labels">
@@ -527,7 +532,7 @@ ${yearDiv}
         if (el !== null) el.addEventListener("mousemove", handler);
 
         // config open button
-        document.querySelector(".search-scrobbler .bar-config").addEventListener("click", function () {
+        document.querySelector(".search-scrobbler .bar-config")?.addEventListener("click", function () {
             document.querySelector(".search-scrobbler-config-bg").style.display = "block";
         }, false);
     }
