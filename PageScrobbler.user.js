@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.11.05
+// @version      2022.11.11.06
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -50,7 +50,6 @@ const stylesheet = `
 }
 .search-scrobbler .bar-config {
   color: red;
-  //pointer-events: none;
   cursor: pointer;
 }
 .search-scrobbler .bar-hover {
@@ -111,7 +110,7 @@ const stylesheet = `
   margin: 15% auto;
   padding: 0px 5px 10px 10px;
   border: 1px solid black;
-  width: 20%;
+  width: min-content;
   box-shadow:2px 2px 3px 2px gray;
   border-radius:7px;
 }
@@ -119,6 +118,14 @@ const stylesheet = `
   text-align: right;
   font-size:25px;
   cursor: pointer;
+  white-space: nowrap;
+  display: block ruby;
+}
+.search-scrobbler-config-title {
+  font-size:16px;
+  font-weight: bold;
+  white-space: nowrap;
+  margin: 4px 10px 0px 0px;
 }
 `;
 
@@ -836,14 +843,14 @@ const updateConfig = () => {
 
     document.querySelector('.search-scrobbler-config-bg').innerHTML = `
   <div class="search-scrobbler-config-window">
-    <div class="search-scrobbler-config-close">&times;</div>
+    <div class="search-scrobbler-config-close"><div class="search-scrobbler-config-title">${GM.info.script.name} v${GM.info.script.version}</div>&nbsp;&nbsp;&times;</div>
     <div>
       <input type="checkbox" id="search-scrobbler-config-disBookmark"><label for="search-scrobbler-config-disBookmark"> Disable bookmarks</label><br>
       <input type="checkbox" id="search-scrobbler-config-disPageinator"><label for="search-scrobbler-config-disPageinator"> Disable pages</label><br>
       <input type="checkbox" id="search-scrobbler-config-disMoveJump2Page"><label for="search-scrobbler-config-disMoveJump2Page"> Disable integration Jump/Seek into paginator</label><br>
       <input type="checkbox" id="search-scrobbler-config-fullWidthBar"><label for="search-scrobbler-config-fullWidthBar"> Use full width for bar</label><br>
       <input type="checkbox" id="search-scrobbler-config-enlPageprefetch"><label for="search-scrobbler-config-enlPageprefetch"> Enable page prefetch (+/- ${maxPrefetch} pages)</label><br>
-      <div style="padding: 2px 30px;color:red;font-weight:bold;">Be careful with prefetch as it creates a lot of page requests and the server will block you for some time if you reaches a certain limit in a timeframe</div>
+      <div style="padding: 2px 20px 2px 30px;color:red;font-weight:bold;">Be careful with prefetch as it creates a lot of page requests and the server will block you for some time if you reaches a certain limit in a timeframe</div>
     </div>
   </div>`;
 
