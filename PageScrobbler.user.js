@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.11.02
+// @version      2022.11.11.03
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -88,6 +88,11 @@ const stylesheet = `
   width: ${defaultBarWidth}px;
   margin: 0px auto 0px auto;
   text-align: center;
+}
+
+.pg-jump {
+  width: fit-content !important;
+  padding: 0px 5px;
 }
 
 .search-scrobbler-config-bg {
@@ -230,7 +235,6 @@ const updatePageInfo = async () => {
         pageInfo.knownPages.min = parseInt(pageInfo.knownPages.min);
         pageInfo.knownPages.max = parseInt(pageInfo.knownPages.max);
     }
-
     if ((sessionStorage.getItem("EHPS-Paginator-Post") == null) && (pageInfo.last != location.href)) {
         pageInfo = resetPageCounter(pageInfo);
     } else sessionStorage.removeItem("EHPS-Paginator-Post")
@@ -242,13 +246,15 @@ const updatePageInfo = async () => {
         pageInfo.path = location.pathname;
     }
 
-    if (document.querySelector(".searchnav #uprev").localName === "span") pageInfo.endLow = pageInfo.current;
-    if (document.querySelector(".searchnav #unext").localName === "span") pageInfo.endHigh = pageInfo.current;
+    if (document.querySelector("#uprev").localName === "span") pageInfo.endLow = pageInfo.current;
+    if (document.querySelector("#unext").localName === "span") pageInfo.endHigh = pageInfo.current;
 
     // do we know the current page?
     if (pageInfo.knownPages[`P${pageInfo.current}`] == null) {
         if (window.location.search != "") {
-            pageInfo.knownPages[`P${pageInfo.current}`] = `${window.location.search}`;
+            const parser = new URL(window.location);
+            parser.searchParams.delete("jump");
+            pageInfo.knownPages[`P${pageInfo.current}`] = `${parser.search}`;
         } else {
             let maxGID = parseInt(getMaxGID(document), 10) + 1;
             pageInfo.knownPages[`P${pageInfo.current}`] = `?next=${maxGID}`;
@@ -261,16 +267,16 @@ const updatePageInfo = async () => {
     pageInfo.last = location.href;
 
     // look if next page announced is known
-    if ((pageInfo.knownPages[`P${pageInfo.current + 1}`] == null) && (document.querySelector(".searchnav #unext").localName === "a")) {
-        pageInfo.knownPages[`P${pageInfo.current + 1}`] = `${(new URL(document.querySelector(".searchnav #unext").href)).search}`;
+    if ((pageInfo.knownPages[`P${pageInfo.current + 1}`] == null) && (document.querySelector("#unext").localName === "a")) {
+        pageInfo.knownPages[`P${pageInfo.current + 1}`] = `${(new URL(document.querySelector("#unext").href)).search}`;
 
         if (pageInfo.knownPages.min > pageInfo.current + 1) pageInfo.knownPages.min = pageInfo.current + 1;
         if (pageInfo.knownPages.max < pageInfo.current + 1) pageInfo.knownPages.max = pageInfo.current + 1;
     }
 
     // look if previous page announced is known
-    if ((pageInfo.knownPages[`P${pageInfo.current - 1}`] == null) && (document.querySelector(".searchnav #uprev").localName === "a")) {
-        pageInfo.knownPages[`P${pageInfo.current - 1}`] = `${(new URL(document.querySelector(".searchnav #uprev").href)).search}`;
+    if ((pageInfo.knownPages[`P${pageInfo.current - 1}`] == null) && (document.querySelector("#uprev").localName === "a")) {
+        pageInfo.knownPages[`P${pageInfo.current - 1}`] = `${(new URL(document.querySelector("#uprev").href)).search}`;
 
         if (pageInfo.knownPages.min > pageInfo.current - 1) pageInfo.knownPages.min = pageInfo.current - 1;
         if (pageInfo.knownPages.max < pageInfo.current - 1) pageInfo.knownPages.max = pageInfo.current - 1;
@@ -300,7 +306,7 @@ const prefetchPrev = async (pageInfo, count) => {
         if ((pageInfo.knownPages[`P${i}`] == null) && (i > (pageInfo.endLow ?? Number.MIN_SAFE_INTEGER))) {
             if (pageInfo.knownPages[`P${i + 1}`] != null) {
                 let doc = await fetchDocument(`${location.origin}${location.pathname}${pageInfo.knownPages[`P${i + 1}`]}`);
-                let jumpElement = doc.querySelector(".searchnav #uprev");
+                let jumpElement = doc.querySelector("#uprev");
                 if (jumpElement != null) {
                     if (jumpElement.localName === "span") pageInfo.endLow = i;
                     if (jumpElement.localName === "a") {
@@ -322,7 +328,7 @@ const prefetchNext = async (pageInfo, count) => {
         if ((pageInfo.knownPages[`P${i}`] == null) && (i < (pageInfo.endHigh ?? Number.MAX_SAFE_INTEGER))) {
             if (pageInfo.knownPages[`P${i - 1}`] != null) {
                 let doc = await fetchDocument(`${location.origin}${location.pathname}${pageInfo.knownPages[`P${i - 1}`]}`);
-                let jumpElement = doc.querySelector(".searchnav #unext");
+                let jumpElement = doc.querySelector("#unext");
                 if (jumpElement != null) {
                     if (jumpElement.localName === "span") pageInfo.endHigh = i;
                     if (jumpElement.localName === "a") {
@@ -630,18 +636,27 @@ const updatePageCounter = async () => {
 
     // build paginator html code
     let pages = "";
+
     if (pageInfo.endLow == null) pages += "<td>?</td>";
 
     for (let i = pageInfo.knownPages.min; i <= pageInfo.knownPages.max; i++) {
         if ((i >= hideStart) && (i <= hideStop)) {
             if (i == hideStart) pages += `<td><a>...</a></td>`;
         } else {
-            if (i == pageInfo.current) pages += `<td class="ptds" onclick="document.location=this.firstChild.href"><a>${i}</a></td>`;
-            else pages += `<td onclick="document.location=this.firstChild.href"><a href=${pageInfo.knownPages[`P${i}`]}>${i}</a></td>`;
+            if (i == pageInfo.current) pages += `<td class="ptds"><a>${i}</a></td>`;
+            else pages += `<td><a href=${pageInfo.knownPages[`P${i}`]}>${i}</a></td>`;
         }
     }
 
     if (pageInfo.endHigh == null) pages += "<td>?</td>";
+    if (localStorage.getItem("EHPS-DisableIntegrationJump2Page") != "true") {
+        pages = '<td id="pg-prev" class="pg-jump"></td>' + pages;
+        pages = '<td id="pg-first" class="pg-jump"></td>' + pages;
+
+        pages += '<td id="pg-next" class="pg-jump"></td>';
+        pages += '<td id="pg-last" class="pg-jump"></td>';
+        pages += '<td id="pg-jump" class="pg-jump"></td>';
+    }
 
     let relpagerdivs = document.querySelectorAll('.search-relpager-num');
     relpagerdivs[0].innerHTML = `
@@ -658,20 +673,45 @@ const updatePageCounter = async () => {
     </tbody>
   </table>`;
 
+    if (localStorage.getItem("EHPS-DisableIntegrationJump2Page") != "true") {
+        // move top jump buttons
+        document.querySelector(".ptt #pg-first").appendChild(document.querySelector("#ufirst"));
+        document.querySelector(".ptt #pg-prev").appendChild(document.querySelector("#uprev"));
+        document.querySelector(".ptt #pg-next").appendChild(document.querySelector("#unext"));
+        document.querySelector(".ptt #pg-last").appendChild(document.querySelector("#ulast"));
+        document.querySelector(".ptt #pg-jump").appendChild(document.querySelector("#ujumpbox"));
+
+        // move bottom jump buttons
+        document.querySelector(".ptb #pg-first").appendChild(document.querySelector("#dfirst"));
+        document.querySelector(".ptb #pg-prev").appendChild(document.querySelector("#dprev"));
+        document.querySelector(".ptb #pg-next").appendChild(document.querySelector("#dnext"));
+        document.querySelector(".ptb #pg-last").appendChild(document.querySelector("#dlast"));
+        document.querySelector(".ptb #pg-jump").appendChild(document.querySelector("#djumpbox"));
+
+        // merge bookmarks and viewstyle
+        document.querySelector(".searchnav").appendChild(document.querySelector(".saved-search"));
+        document.querySelector(".searchnav").appendChild(document.querySelector(".searchnav div:nth-child(6)"));
+        document.querySelector(".searchnav div:nth-child(1)").remove();
+        document.querySelector(".searchnav div:nth-child(1)").remove();
+        document.querySelector(".searchnav div:nth-child(1)").remove();
+        document.querySelector(".searchnav div:nth-child(1)").remove();
+        document.querySelector(".saved-search").style.width = "auto";
+    }
+
     // patch prev and next jumps
     if (prevurl) prevurl = pageInfo.knownPages[`P${pageInfo.current - 1}`];
     if (nexturl) nexturl = pageInfo.knownPages[`P${pageInfo.current + 1}`];
 
-    let uprev = document.querySelector(".searchnav #uprev");
+    let uprev = document.querySelector("#uprev");
     if (uprev.localName !== "span") uprev.href = prevurl;
 
-    let dprev = document.querySelector(".searchnav #dprev");
+    let dprev = document.querySelector("#dprev");
     if (dprev.localName !== "span") dprev.href = prevurl;
 
-    let unext = document.querySelector(".searchnav #unext");
+    let unext = document.querySelector("#unext");
     if (unext.localName !== "span") unext.href = nexturl;
 
-    let dnext = document.querySelector(".searchnav #dnext");
+    let dnext = document.querySelector("#dnext");
     if (dnext.localName !== "span") dnext.href = nexturl;
 
     // add tab click event handler ...
@@ -691,11 +731,14 @@ const updatePageCounter = async () => {
                         document.location = pageInfo.knownPages[`P${page}`];
                     }
                 }
+            } else if (ev.target.id.startsWith("pg-") || ev.target.id.startsWith("u") || ev.target.id.startsWith("d")) {
+                if (ev.target.id.startsWith("pg-")) ev.target.firstChild.click();
             } else if (ev.target.innerText != "?") {
                 let pageInfo = JSON.parse(sessionStorage.getItem("EHPS-Paginator"));
                 pageInfo.current = ev.target.innerText;
                 sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
                 sessionStorage.setItem("EHPS-Paginator-Post", "x");
+                if (ev.target.localName === "td") document.location = ev.target.firstChild.href;
             }
         }, false);
     });
@@ -746,22 +789,22 @@ const updatePageCounter = async () => {
         }
     }, false);
 
-    document.querySelector(".searchnav #ufirst").addEventListener("click", function (ev) {
+    document.querySelector("#ufirst").addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
         resetPageCounterStorage();
     }, false);
 
-    document.querySelector(".searchnav #dfirst").addEventListener("click", function (ev) {
+    document.querySelector("#dfirst").addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
         resetPageCounterStorage();
     }, false);
 
-    document.querySelector(".searchnav #ulast").addEventListener("click", function (ev) {
+    document.querySelector("#ulast").addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
         resetPageCounterStorage();
     }, false);
 
-    document.querySelector(".searchnav #dlast").addEventListener("click", function (ev) {
+    document.querySelector("#dlast").addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
         resetPageCounterStorage();
     }, false);
@@ -797,6 +840,7 @@ const updateConfig = () => {
     <div>
       <input type="checkbox" id="search-scrobbler-config-disBookmark"><label for="search-scrobbler-config-disBookmark"> Disable bookmarks</label><br>
       <input type="checkbox" id="search-scrobbler-config-disPageinator"><label for="search-scrobbler-config-disPageinator"> Disable pages</label><br>
+      <input type="checkbox" id="search-scrobbler-config-disMoveJump2Page"><label for="search-scrobbler-config-disMoveJump2Page"> Disable integration Jump/Seek into paginator</label><br>
       <input type="checkbox" id="search-scrobbler-config-fullWidthBar"><label for="search-scrobbler-config-fullWidthBar"> Use full width for bar</label><br>
       <input type="checkbox" id="search-scrobbler-config-enlPageprefetch"><label for="search-scrobbler-config-enlPageprefetch"> Enable page prefetch (+/- ${maxPrefetch} pages)</label><br>
       <div style="padding: 2px 30px;color:red;font-weight:bold;">Be careful with prefetch as it creates a lot of page requests and the server will block you for some time if you reaches a certain limit in a timeframe</div>
@@ -827,6 +871,12 @@ const updateConfig = () => {
         updatePageCounter();
     }, false);
 
+    document.getElementById("search-scrobbler-config-disMoveJump2Page").addEventListener("click", function (e) {
+        localStorage.setItem("EHPS-DisableIntegrationJump2Page", e.target.checked);
+        if (!e.target.checked) updatePageCounter();
+        else location.reload();
+    }, false);
+
     document.getElementById("search-scrobbler-config-fullWidthBar").addEventListener("click", function (e) {
         localStorage.setItem("EHPS-FullWidthBar", e.target.checked);
         updatePageScrobbler();
@@ -839,6 +889,7 @@ const updateConfig = () => {
 
     if (localStorage.getItem("EHPS-DisableBookmark") == "true") document.getElementById("search-scrobbler-config-disBookmark").checked = true;
     if (localStorage.getItem("EHPS-DisablePageinator") == "true") document.getElementById("search-scrobbler-config-disPageinator").checked = true;
+    if (localStorage.getItem("EHPS-DisableIntegrationJump2Page") == "true") document.getElementById("search-scrobbler-config-disMoveJump2Page").checked = true;
     if (localStorage.getItem("EHPS-FullWidthBar") == "true") document.getElementById("search-scrobbler-config-fullWidthBar").checked = true;
     if (localStorage.getItem("EHPS-EnablePageinatorPrefetch") == "true") document.getElementById("search-scrobbler-config-enlPageprefetch").checked = true;
 }
