@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.11.01
+// @version      2022.11.11.02
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -205,6 +205,7 @@ const tryUpdateKnownMaxGID = GID => {
 }
 
 const resetPageCounter = (pageInfo) => {
+    if (pageInfo == null) pageInfo = {};
     pageInfo.current = 0;
     pageInfo.path = null;
     pageInfo.last = null;
@@ -658,17 +659,20 @@ const updatePageCounter = async () => {
   </table>`;
 
     // patch prev and next jumps
+    if (prevurl) prevurl = pageInfo.knownPages[`P${pageInfo.current - 1}`];
+    if (nexturl) nexturl = pageInfo.knownPages[`P${pageInfo.current + 1}`];
+
     let uprev = document.querySelector(".searchnav #uprev");
-    if (uprev.localName !== "span") uprev.href = pageInfo.knownPages[`P${pageInfo.current - 1}`];
+    if (uprev.localName !== "span") uprev.href = prevurl;
 
     let dprev = document.querySelector(".searchnav #dprev");
-    if (dprev.localName !== "span") dprev.href = pageInfo.knownPages[`P${pageInfo.current - 1}`];
+    if (dprev.localName !== "span") dprev.href = prevurl;
 
     let unext = document.querySelector(".searchnav #unext");
-    if (unext.localName !== "span") unext.href = pageInfo.knownPages[`P${pageInfo.current + 1}`];
+    if (unext.localName !== "span") unext.href = nexturl;
 
     let dnext = document.querySelector(".searchnav #dnext");
-    if (dnext.localName !== "span") dnext.href = pageInfo.knownPages[`P${pageInfo.current + 1}`];
+    if (dnext.localName !== "span") dnext.href = nexturl;
 
     // add tab click event handler ...
     // ... for page buttons
