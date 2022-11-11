@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.10.07
+// @version      2022.11.11.01
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -657,6 +657,19 @@ const updatePageCounter = async () => {
     </tbody>
   </table>`;
 
+    // patch prev and next jumps
+    let uprev = document.querySelector(".searchnav #uprev");
+    if (uprev.localName !== "span") uprev.href = pageInfo.knownPages[`P${pageInfo.current - 1}`];
+
+    let dprev = document.querySelector(".searchnav #dprev");
+    if (dprev.localName !== "span") dprev.href = pageInfo.knownPages[`P${pageInfo.current - 1}`];
+
+    let unext = document.querySelector(".searchnav #unext");
+    if (unext.localName !== "span") unext.href = pageInfo.knownPages[`P${pageInfo.current + 1}`];
+
+    let dnext = document.querySelector(".searchnav #dnext");
+    if (dnext.localName !== "span") dnext.href = pageInfo.knownPages[`P${pageInfo.current + 1}`];
+
     // add tab click event handler ...
     // ... for page buttons
     document.querySelectorAll('.search-relpager-num td').forEach(function (nav) {
@@ -685,7 +698,7 @@ const updatePageCounter = async () => {
 
     // add generic click event handler ...
     // ... for jump buttons
-    document.querySelector(".searchnav #uprev").addEventListener("click", function (ev) {
+    uprev.addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
         if ((new URLSearchParams(ev.target.href)).has("jump")) resetPageCounterStorage();
         else {
@@ -696,7 +709,7 @@ const updatePageCounter = async () => {
         }
     }, false);
 
-    document.querySelector(".searchnav #dprev").addEventListener("click", function (ev) {
+    dprev.addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
         if ((new URLSearchParams(ev.target.href)).has("jump")) resetPageCounterStorage();
         else {
@@ -707,7 +720,7 @@ const updatePageCounter = async () => {
         }
     }, false);
 
-    document.querySelector(".searchnav #unext").addEventListener("click", function (ev) {
+    unext.addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
         if ((new URLSearchParams(ev.target.href)).has("jump")) resetPageCounterStorage();
         else {
@@ -718,7 +731,7 @@ const updatePageCounter = async () => {
         }
     }, false);
 
-    document.querySelector(".searchnav #dnext").addEventListener("click", function (ev) {
+    dnext.addEventListener("click", function (ev) {
         if (ev.target.localName === "span") return
         if ((new URLSearchParams(ev.target.href)).has("jump")) resetPageCounterStorage();
         else {
