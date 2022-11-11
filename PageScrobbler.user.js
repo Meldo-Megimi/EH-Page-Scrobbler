@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.11.04
+// @version      2022.11.11.05
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -888,7 +888,8 @@ const updateConfig = () => {
 
     document.getElementById("search-scrobbler-config-enlPageprefetch").addEventListener("click", function (e) {
         localStorage.setItem("EHPS-EnablePageinatorPrefetch", e.target.checked);
-        updatePageCounter();
+        if (localStorage.getItem("EHPS-DisableIntegrationJump2Page") != "true") location.reload();
+        else updatePageCounter();
     }, false);
 
     if (localStorage.getItem("EHPS-DisableBookmark") == "true") document.getElementById("search-scrobbler-config-disBookmark").checked = true;
