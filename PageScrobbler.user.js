@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.12.03
+// @version      2022.11.12.04
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -81,6 +81,7 @@ const stylesheet = `
 .saved-search {
   width: ${defaultBarWidth}px;
   margin: 0 auto;
+  font-size: 10pt;
 }
 
 .search-relpager-top {
@@ -391,7 +392,7 @@ const addBaseUIElements = () => {
 
     const addInitialElement = () => {
         const nav = document.querySelectorAll('.searchnav');
-        if (nav == null) return false;
+        if (nav.length < 2) return false;
 
         if (!document.querySelector(".search-scrobbler")) {
             nav[0].insertAdjacentHTML("beforebegin", `<div class="search-scrobbler"></div>`);
