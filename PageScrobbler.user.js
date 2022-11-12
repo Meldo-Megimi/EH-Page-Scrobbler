@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.12.04
+// @version      2022.11.12.05
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -147,7 +147,7 @@ const gidYear = {
     2100270: 2021
 };
 
-const maxPrefetch = 5;
+const defaultMaxPrefetch = 5;
 
 const injectStylesheet = () => {
     if (typeof GM_addStyle != "undefined") {
@@ -277,9 +277,8 @@ const updatePageInfo = async () => {
             let maxGID = parseInt(getMaxGID(document), 10) + 1;
             pageInfo.knownPages[`P${window.currentPage}`] = `?next=${maxGID}`;
 
-            // reload page
-            sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
-            document.location = pageInfo.knownPages[`P${window.currentPage}`];
+            // fix reload page
+            window.history.pushState('forward', null, pageInfo.knownPages[`P${window.currentPage}`]);
         }
 
         if (pageInfo.knownPages.min > window.currentPage) pageInfo.knownPages.min = window.currentPage;
@@ -369,6 +368,8 @@ const prefetchNext = async (pageInfo, count) => {
 
 const prefetchPageInfo = async (pageInfo) => {
     // prefetch prev pagees
+    let maxPrefetch = parseInt(localStorage.getItem("EHPS-EnablePageinatorPrefetchSize") ?? defaultMaxPrefetch);
+    if (isNaN(maxPrefetch)) maxPrefetch = defaultMaxPrefetch;
     pageInfo = await prefetchPrev(pageInfo, maxPrefetch + 1);
 
     let nextCount = maxPrefetch + 1;
@@ -817,10 +818,21 @@ const updateConfig = () => {
       <input type="checkbox" id="search-scrobbler-config-disPageinator"><label for="search-scrobbler-config-disPageinator"> Disable pages</label><br>
       <input type="checkbox" id="search-scrobbler-config-disMoveJump2Page"><label for="search-scrobbler-config-disMoveJump2Page"> Disable integration Jump/Seek into paginator</label><br>
       <input type="checkbox" id="search-scrobbler-config-fullWidthBar"><label for="search-scrobbler-config-fullWidthBar"> Use full width for bar</label><br>
-      <input type="checkbox" id="search-scrobbler-config-enlPageprefetch"><label for="search-scrobbler-config-enlPageprefetch"> Enable page prefetch (+/- ${maxPrefetch} pages)</label><br>
+      <input type="checkbox" id="search-scrobbler-config-enlPageprefetch"><label for="search-scrobbler-config-enlPageprefetch"> Enable page prefetch (+/- <select id="search-scrobbler-config-enlPageprefetch-size"></select> pages)</label><br>
       <div style="padding: 2px 20px 2px 30px;color:red;font-weight:bold;">Be careful with prefetch as it creates a lot of page requests and the server will block you for some time if you reaches a certain limit in a timeframe</div>
     </div>
   </div>`;
+
+    let enlPageprefetchSize = document.getElementById('search-scrobbler-config-enlPageprefetch-size');
+    let selSize = localStorage.getItem("EHPS-EnablePageinatorPrefetchSize") ?? defaultMaxPrefetch;
+    for (let i = 2; i < 6; i++) {
+        let opt = document.createElement('option');
+        opt.text = i;
+        opt.value = i;
+        if (selSize == i) opt.selected = true;
+
+        enlPageprefetchSize.add(opt);
+    }
 
     // config close button
     document.querySelector(".search-scrobbler-config-close").addEventListener("click", function () {
@@ -866,6 +878,15 @@ const updateConfig = () => {
         if (localStorage.getItem("EHPS-DisableIntegrationJump2Page") != "true") location.reload();
         else updatePageCounter();
     }, false);
+
+    document.getElementById("search-scrobbler-config-enlPageprefetch-size").addEventListener("change", function (e) {
+        localStorage.setItem("EHPS-EnablePageinatorPrefetchSize", e.target.value);
+        if (localStorage.getItem("EHPS-EnablePageinatorPrefetch") == "true") {
+            if (localStorage.getItem("EHPS-DisableIntegrationJump2Page") != "true") location.reload();
+            else updatePageCounter();
+        }
+    }, false);
+
 
     if (localStorage.getItem("EHPS-DisableBookmark") == "true") document.getElementById("search-scrobbler-config-disBookmark").checked = true;
     if (localStorage.getItem("EHPS-DisablePageinator") == "true") document.getElementById("search-scrobbler-config-disPageinator").checked = true;
