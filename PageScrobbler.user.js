@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.12.02
+// @version      2022.11.12.03
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -275,6 +275,10 @@ const updatePageInfo = async () => {
         } else {
             let maxGID = parseInt(getMaxGID(document), 10) + 1;
             pageInfo.knownPages[`P${window.currentPage}`] = `?next=${maxGID}`;
+
+            // reload page
+            sessionStorage.setItem("EHPS-Paginator", JSON.stringify(pageInfo));
+            document.location = pageInfo.knownPages[`P${window.currentPage}`];
         }
 
         if (pageInfo.knownPages.min > window.currentPage) pageInfo.knownPages.min = window.currentPage;
@@ -614,6 +618,7 @@ const updateBookmark = () => {
     if (searchParams.has('f_search') && (localStorage.getItem("EHPS-DisableBookmark") != "true")) {
         let gid = localStorage.getItem(searchParams.get('f_search'));
         if (!gid) document.getElementById('save_load_text').innerHTML = "No bookmark found for this search.";
+        else document.querySelector('.search-save-button').value = 'Update';
 
         document.querySelectorAll('.search-save-button').forEach(function (key) { key.style.display = ''; });
     } else {
