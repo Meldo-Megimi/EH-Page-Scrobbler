@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.11.06
+// @version      2022.11.12.01
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -376,15 +376,16 @@ const addBaseUIElements = () => {
     if ((new URL(location.href)).pathname == "/popular") return false;
 
     const addInitialElement = () => {
-        const hook = document.querySelector(".searchnav");
-        if (hook == null) return false;
+        const nav = document.querySelectorAll('.searchnav');
+        if (nav == null) return false;
 
         if (!document.querySelector(".search-scrobbler")) {
-            hook.insertAdjacentHTML("beforebegin", `<div class="search-scrobbler"></div>`);
+            nav[0].insertAdjacentHTML("beforebegin", `<div class="search-scrobbler"></div>`);
+            nav[1].insertAdjacentHTML("afterend", `<div class="search-scrobbler"></div>`);
         }
 
         if (!document.querySelector(".saved-search")) {
-            hook.insertAdjacentHTML("beforebegin", `
+            nav[0].insertAdjacentHTML("beforebegin", `
 <div class="saved-search">
   <input class="search-save-button" id="search-save-button" type="button" value="Save"></input>
   <label class="search-list">Saved searches:</label>
@@ -397,13 +398,12 @@ const addBaseUIElements = () => {
         }
 
         if (!document.querySelector(".search-relpager")) {
-            let nav = document.querySelectorAll('.searchnav');
             nav[0].insertAdjacentHTML("afterend", `<div class="search-relpager"><span class="search-relpager-num"></span</div>`);
             nav[1].insertAdjacentHTML("beforebegin", `<div class="search-relpager"><span class="search-relpager-num"></span</div>`);
         }
 
         if (!document.querySelector(".search-scrobbler-config-bg")) {
-            hook.insertAdjacentHTML("beforebegin", `<div class="search-scrobbler-config-bg"></div>`);
+            nav[0].insertAdjacentHTML("beforebegin", `<div class="search-scrobbler-config-bg"></div>`);
         }
 
         return true;
@@ -507,7 +507,8 @@ const updatePageScrobbler = () => {
             yearDiv += `<div class="bar-year-label" style="left: ${(1.0 - key / maxGID) * 100}% ">|${gidYear[key]}</div>`;
         }
 
-        document.querySelector(".search-scrobbler").innerHTML = `
+        const scrobbler = document.querySelectorAll('.search-scrobbler');
+        scrobbler[0].innerHTML = `
   <div class="bar-wrapper bar-full">
     <div class="bar">
       <div class="bar-cursor" style="width: ${cursorWidth}%; margin-left: ${cursorLeftMargin}% ">
@@ -523,43 +524,77 @@ const updatePageScrobbler = () => {
 ${yearDiv}
   </div>`;
 
+        scrobbler[1].innerHTML = `
+  <div class="bar-wrapper bar-full">
+    <div class="bar">
+      <div class="bar-cursor" style="width: ${cursorWidth}%; margin-left: ${cursorLeftMargin}% ">
+        <div class="bar-hovertext">${firstGID}</div>
+      </div>
+    </div>
+    <div class="bar-labels">
+      <div class="bar-max">${maxGID}</div>
+      <div class="bar-min">1</div>
+    </div>
+  </div>
+  <div class="bar-year-labels">
+${yearDiv}
+  </div>`;
+
         if (localStorage.getItem("EHPS-FullWidthBar") == "true") {
-            document.querySelector(".search-scrobbler").style.width = "100%";
-            document.querySelector(".search-scrobbler .bar").style.width = "100%";
+            scrobbler[0].style.width = "100%";
+            scrobbler[0].querySelector(".bar").style.width = "100%";
+
+            scrobbler[1].style.width = "100%";
+            scrobbler[1].querySelector(".bar").style.width = "100%";
         } else {
-            document.querySelector(".search-scrobbler").style.width = null;
-            document.querySelector(".search-scrobbler .bar").style.width = null;
+            scrobbler[0].style.width = null;
+            scrobbler[0].querySelector(".bar").style.width = null;
+
+            scrobbler[1].style.width = null;
+            scrobbler[1].querySelector(".bar").style.width = null;
         }
     }
 
     const addEventListeners = () => {
-        const addHoverElement = offset => {
+        const addHoverElement = (e, n) => {
+            const offset = e.layerX;
             if (offset < 2) return;
             document.querySelector(".bar-hover")?.remove();
 
             const maxGID = localStorage.getItem("EHPS-maxGID");
-            const width = document.querySelector(".search-scrobbler .bar").clientWidth;
+            const width = e.target.clientWidth;
             const hoverGID = ((1.0 - offset / width) * maxGID).toFixed(0);
 
             const url = new URL(location.href);
             url.searchParams.set("next", hoverGID);
 
-            document.querySelector(".bar-full .bar").insertAdjacentHTML("afterbegin", `
+            document.querySelectorAll(".bar-full .bar")[n].insertAdjacentHTML("afterbegin", `
 <a class="bar-hover" href="${url}" style="left: ${offset - 2}px; width: 2px">
   <div class="bar-hovertext">${hoverGID}</div>
 </a>`);
         }
 
-        const handler = e => {
-            addHoverElement(e.layerX);
+        const handler0 = e => {
+            addHoverElement(e, 0);
 
             document.querySelector(".bar-hover").addEventListener("click", function (ev) {
                 resetPageCounterStorage();
             }, false);
         }
 
-        const el = document.querySelector(".bar-full .bar");
-        if (el !== null) el.addEventListener("mousemove", handler);
+        const handler1 = e => {
+            addHoverElement(e, 1);
+
+            document.querySelector(".bar-hover").addEventListener("click", function (ev) {
+                resetPageCounterStorage();
+            }, false);
+        }
+
+        const el = document.querySelectorAll(".bar-full .bar");
+        if (el !== null) {
+            el[0].addEventListener("mousemove", handler0);
+            el[1].addEventListener("mousemove", handler1);
+        }
 
         // config open button
         document.querySelector(".search-scrobbler .bar-config")?.addEventListener("click", function () {
