@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.11.12.05
+// @version      2022.11.18.01
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -107,10 +107,9 @@ const stylesheet = `
   backdrop-filter: blur(2px);
 }
 .search-scrobbler-config-window {
-  background-color: #4f535b;
-  margin: 15% auto;
-  padding: 0px 5px 10px 10px;
-  border: 1px solid black;
+  margin: 15% auto !important;
+  padding: 0px 5px 10px 10px !important;
+  min-width: 300px !important;
   width: min-content;
   box-shadow:2px 2px 3px 2px gray;
   border-radius:7px;
@@ -811,7 +810,7 @@ const updateConfig = () => {
     if (document.querySelector(".search-scrobbler-config-bg") === null) return;
 
     document.querySelector('.search-scrobbler-config-bg').innerHTML = `
-  <div class="search-scrobbler-config-window">
+  <div class="search-scrobbler-config-window ido">
     <div class="search-scrobbler-config-close"><div class="search-scrobbler-config-title">${GM.info.script.name} v${GM.info.script.version}</div>&nbsp;&nbsp;&times;</div>
     <div>
       <input type="checkbox" id="search-scrobbler-config-disBookmark"><label for="search-scrobbler-config-disBookmark"> Disable bookmarks</label><br>
