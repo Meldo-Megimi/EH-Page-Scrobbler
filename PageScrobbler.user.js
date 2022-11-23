@@ -483,9 +483,11 @@ const addBaseUIElements = () => {
             }
         }, false);
 
-        document.querySelector(".search-scrobbler").addEventListener("mouseleave", function () {
-            document.querySelector(".bar-hover")?.remove();
-        }, false);
+        document.querySelectorAll(".search-scrobbler").forEach((s) => {
+            s.addEventListener("mouseleave", function () {
+                document.querySelector(".bar-hover")?.remove();
+            }, false);
+        });
     }
 
     if (addInitialElement()) {
