@@ -483,9 +483,11 @@ const addBaseUIElements = () => {
             }
         }, false);
 
-        document.querySelector(".search-scrobbler").addEventListener("mouseleave", function () {
-            document.querySelector(".bar-hover")?.remove();
-        }, false);
+        document.querySelectorAll(".search-scrobbler").forEach((s) => {
+            s.addEventListener("mouseleave", function () {
+                document.querySelector(".bar-hover")?.remove();
+            }, false);
+        });
     }
 
     if (addInitialElement()) {
@@ -581,6 +583,7 @@ ${yearDiv}
 
             const maxGID = localStorage.getItem("EHPS-maxGID");
             const width = e.target.clientWidth;
+            if (width == 0) return;
             const hoverGID = ((1.0 - offset / width) * maxGID).toFixed(0);
 
             const url = new URL(location.href);
