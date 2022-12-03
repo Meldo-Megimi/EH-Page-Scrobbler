@@ -237,7 +237,6 @@ const updatePageInfo = async () => {
 
     // get current page nr.
     const parser = new URL(window.location);
-    parser.searchParams.delete("jump");
     for (let i = pageInfo.knownPages.min; i <= pageInfo.knownPages.max; i++) {
         if (decodeURIComponent(pageInfo.knownPages[`P${i}`]) == decodeURIComponent(`${parser.search}`)) {
             window.currentPage = i;
@@ -245,18 +244,11 @@ const updatePageInfo = async () => {
         }
     }
 
-    // current page is unknown, have we a hint?
+    // current page is unknown, reset paginator
     if (isNaN(window.currentPage)) {
-        window.currentPage = parseInt(sessionStorage.getItem("EHPS-Paginator-Post"));
-
-        // current page is unknown an we have no hint => reset paginator
-        if (isNaN(window.currentPage)) {
-            pageInfo = resetPageCounter(pageInfo);
-            window.currentPage = 0;
-        }
+        pageInfo = resetPageCounter(pageInfo);
+        window.currentPage = 0;
     }
-
-    sessionStorage.removeItem("EHPS-Paginator-Post");
 
     // check path
     if (pageInfo.path == null) pageInfo.path = location.pathname;
@@ -789,27 +781,6 @@ const updatePageCounter = async () => {
             }
         }, false);
     });
-
-    // add generic click event handler for jump buttons
-    uprev.addEventListener("click", function (ev) {
-        if (ev.target.localName === "span") return
-        if (!(new URLSearchParams(ev.target.href)).has("jump")) sessionStorage.setItem("EHPS-Paginator-Post", window.currentPage - 1);
-    }, false);
-
-    dprev.addEventListener("click", function (ev) {
-        if (ev.target.localName === "span") return
-        if (!(new URLSearchParams(ev.target.href)).has("jump")) sessionStorage.setItem("EHPS-Paginator-Post", window.currentPage - 1);
-    }, false);
-
-    unext.addEventListener("click", function (ev) {
-        if (ev.target.localName === "span") return
-        if (!(new URLSearchParams(ev.target.href)).has("jump")) sessionStorage.setItem("EHPS-Paginator-Post", window.currentPage + 1);
-    }, false);
-
-    dnext.addEventListener("click", function (ev) {
-        if (ev.target.localName === "span") return
-        if (!(new URLSearchParams(ev.target.href)).has("jump")) sessionStorage.setItem("EHPS-Paginator-Post", window.currentPage + 1);
-    }, false);
 }
 
 const updateConfig = () => {
