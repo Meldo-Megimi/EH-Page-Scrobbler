@@ -237,7 +237,6 @@ const updatePageInfo = async () => {
 
     // get current page nr.
     const parser = new URL(window.location);
-    parser.searchParams.delete("jump");
     for (let i = pageInfo.knownPages.min; i <= pageInfo.knownPages.max; i++) {
         if (decodeURIComponent(pageInfo.knownPages[`P${i}`]) == decodeURIComponent(`${parser.search}`)) {
             window.currentPage = i;
@@ -245,18 +244,11 @@ const updatePageInfo = async () => {
         }
     }
 
-    // current page is unknown, have we a hint?
+    // current page is unknown, reset paginator
     if (isNaN(window.currentPage)) {
-        window.currentPage = parseInt(sessionStorage.getItem("EHPS-Paginator-Post"));
-
-        // current page is unknown an we have no hint => reset paginator
-        if (isNaN(window.currentPage)) {
-            pageInfo = resetPageCounter(pageInfo);
-            window.currentPage = 0;
-        }
+        pageInfo = resetPageCounter(pageInfo);
+        window.currentPage = 0;
     }
-
-    sessionStorage.removeItem("EHPS-Paginator-Post");
 
     // check path
     if (pageInfo.path == null) pageInfo.path = location.pathname;
@@ -430,18 +422,14 @@ const addBaseUIElements = () => {
             let searchParams = new URLSearchParams(window.location.search);
             if (searchParams.has('f_search')) {
                 let f_search = searchParams.get('f_search');
-                if (searchParams.has('next')) {
+                if (searchParams.has('next') && !searchParams.has('jump') && !searchParams.has('seek')) {
                     let next = searchParams.get('next');
                     localStorage.setItem(f_search, "&next=" + next);
                     document.getElementById('save_load_text').innerHTML = "Saved (next) GID " + next + " for search " + f_search;
-
-                    updateBookmark();
-                } else if (searchParams.has('prev')) {
+                } else if (searchParams.has('prev') && !searchParams.has('jump') && !searchParams.has('seek')) {
                     let prev = searchParams.get('prev');
                     localStorage.setItem(f_search, "&prev=" + prev);
                     document.getElementById('save_load_text').innerHTML = "Saved (prev) GID " + prev + " for search " + f_search;
-
-                    updateBookmark();
                 } else {
                     let next;
                     if (!!document.querySelector(".itg tr .glname a")) { // Minimal and Compact
@@ -452,9 +440,10 @@ const addBaseUIElements = () => {
                         next = document.querySelector(".itg .gl1t:first-child a").href.match(/\/(\d+)\//)?.[1];
                     }
                     localStorage.setItem(f_search, "&next=" + (parseInt(next, 10) + 1));
-
-                    updateBookmark();
+                    document.getElementById('save_load_text').innerHTML = "Saved (next) GID " + next + " for search " + f_search;
                 }
+
+                updateBookmark();
             }
         }, false);
         document.getElementById("search-load-button")?.addEventListener("click", function () {
@@ -465,6 +454,8 @@ const addBaseUIElements = () => {
                     const parser = new URL(window.location);
                     parser.searchParams.delete("next");
                     parser.searchParams.delete("prev");
+                    parser.searchParams.delete("jump");
+                    parser.searchParams.delete("seek");
                     parser.searchParams.delete("f_search");
                     window.location = parser.href + "?f_search=" + encodeURIComponent(searchSelect) + gid;
                 } else {
@@ -790,27 +781,6 @@ const updatePageCounter = async () => {
             }
         }, false);
     });
-
-    // add generic click event handler for jump buttons
-    uprev.addEventListener("click", function (ev) {
-        if (ev.target.localName === "span") return
-        if (!(new URLSearchParams(ev.target.href)).has("jump")) sessionStorage.setItem("EHPS-Paginator-Post", window.currentPage - 1);
-    }, false);
-
-    dprev.addEventListener("click", function (ev) {
-        if (ev.target.localName === "span") return
-        if (!(new URLSearchParams(ev.target.href)).has("jump")) sessionStorage.setItem("EHPS-Paginator-Post", window.currentPage - 1);
-    }, false);
-
-    unext.addEventListener("click", function (ev) {
-        if (ev.target.localName === "span") return
-        if (!(new URLSearchParams(ev.target.href)).has("jump")) sessionStorage.setItem("EHPS-Paginator-Post", window.currentPage + 1);
-    }, false);
-
-    dnext.addEventListener("click", function (ev) {
-        if (ev.target.localName === "span") return
-        if (!(new URLSearchParams(ev.target.href)).has("jump")) sessionStorage.setItem("EHPS-Paginator-Post", window.currentPage + 1);
-    }, false);
 }
 
 const updateConfig = () => {
