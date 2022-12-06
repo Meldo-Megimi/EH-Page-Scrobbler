@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.12.04.01
+// @version      2022.12.06.01
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -456,6 +456,7 @@ const addBaseUIElements = () => {
                     parser.searchParams.delete("prev");
                     parser.searchParams.delete("jump");
                     parser.searchParams.delete("seek");
+                    parser.searchParams.delete("range");
                     parser.searchParams.delete("f_search");
                     window.location = parser.href + "?f_search=" + encodeURIComponent(searchSelect) + gid;
                 } else {
