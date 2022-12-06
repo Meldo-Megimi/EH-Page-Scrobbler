@@ -456,6 +456,7 @@ const addBaseUIElements = () => {
                     parser.searchParams.delete("prev");
                     parser.searchParams.delete("jump");
                     parser.searchParams.delete("seek");
+                    parser.searchParams.delete("range");
                     parser.searchParams.delete("f_search");
                     window.location = parser.href + "?f_search=" + encodeURIComponent(searchSelect) + gid;
                 } else {
