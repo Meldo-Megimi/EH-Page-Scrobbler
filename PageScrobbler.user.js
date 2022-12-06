@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.12.06.01
+// @version      2022.12.06.02
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -784,6 +784,13 @@ const updatePageCounter = async () => {
     });
 }
 
+const updateRangeBar = () => {
+    if (document.getElementById("rangebar")) {
+        if (localStorage.getItem("EHPS-HideRangeBar") == "true") document.getElementById("rangebar").style.display = "none";
+        else document.getElementById("rangebar").style.display = "";
+    }
+}
+
 const updateConfig = () => {
     if (document.querySelector(".search-scrobbler-config-bg") === null) return;
 
@@ -794,6 +801,7 @@ const updateConfig = () => {
       <input type="checkbox" id="search-scrobbler-config-disBookmark"><label for="search-scrobbler-config-disBookmark"> Disable bookmarks</label><br>
       <input type="checkbox" id="search-scrobbler-config-disPageinator"><label for="search-scrobbler-config-disPageinator"> Disable pages</label><br>
       <input type="checkbox" id="search-scrobbler-config-disMoveJump2Page"><label for="search-scrobbler-config-disMoveJump2Page"> Disable integration Jump/Seek into paginator</label><br>
+      <input type="checkbox" id="search-scrobbler-config-disRangeBar"><label for="search-scrobbler-config-disRangeBar"> Hide range bar</label><br>
       <input type="checkbox" id="search-scrobbler-config-fullWidthBar"><label for="search-scrobbler-config-fullWidthBar"> Use full width for bar</label><br>
       <input type="checkbox" id="search-scrobbler-config-enlPageprefetch"><label for="search-scrobbler-config-enlPageprefetch"> Enable page prefetch (+/- <select id="search-scrobbler-config-enlPageprefetch-size"></select> pages)</label><br>
       <div style="padding: 2px 20px 2px 30px;color:red;font-weight:bold;">Be careful with prefetch as it creates a lot of page requests and the server will block you for some time if you reaches a certain limit in a timeframe</div>
@@ -864,12 +872,17 @@ const updateConfig = () => {
         }
     }, false);
 
+    document.getElementById("search-scrobbler-config-disRangeBar").addEventListener("click", function (e) {
+        localStorage.setItem("EHPS-HideRangeBar", e.target.checked);
+        updateRangeBar();
+    }, false);
 
     if (localStorage.getItem("EHPS-DisableBookmark") == "true") document.getElementById("search-scrobbler-config-disBookmark").checked = true;
     if (localStorage.getItem("EHPS-DisablePageinator") == "true") document.getElementById("search-scrobbler-config-disPageinator").checked = true;
     if (localStorage.getItem("EHPS-DisableIntegrationJump2Page") == "true") document.getElementById("search-scrobbler-config-disMoveJump2Page").checked = true;
     if (localStorage.getItem("EHPS-FullWidthBar") == "true") document.getElementById("search-scrobbler-config-fullWidthBar").checked = true;
     if (localStorage.getItem("EHPS-EnablePageinatorPrefetch") == "true") document.getElementById("search-scrobbler-config-enlPageprefetch").checked = true;
+    if (localStorage.getItem("EHPS-HideRangeBar") == "true") document.getElementById("search-scrobbler-config-disRangeBar").checked = true;
 }
 
 const main = () => {
@@ -881,6 +894,7 @@ const main = () => {
         updateConfig();
         updateBookmark();
         updatePageCounter();
+        updateRangeBar();
     }
 }
 
