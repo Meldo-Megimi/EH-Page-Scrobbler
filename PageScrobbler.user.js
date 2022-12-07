@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2022.12.06.03
+// @version      2022.12.07.01
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -77,6 +77,17 @@ const stylesheet = `
 .bar-year-label {
   position:absolute;
 }
+
+.search-scrobbler-altcfg {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+  .search-scrobbler-altcfg .bar-config {
+    color: red;
+    cursor: pointer;
+  }
 
 .saved-search {
   width: ${defaultBarWidth}px;
@@ -387,7 +398,7 @@ const addBaseUIElements = () => {
         if (nav.length < 2) return false;
 
         if (!document.querySelector(".search-scrobbler")) {
-            nav[0].insertAdjacentHTML("beforebegin", `<div class="search-scrobbler"></div>`);
+            nav[0].insertAdjacentHTML("beforebegin", `<div class="search-scrobbler"></div><div class="search-scrobbler-altcfg"></div>`);
             nav[1].insertAdjacentHTML("afterend", `<div class="search-scrobbler"></div>`);
         }
 
@@ -552,6 +563,8 @@ ${yearDiv}
 ${yearDiv}
   </div>`;
 
+        document.querySelector('.search-scrobbler-altcfg').innerHTML = `<div class="bar-max"></div><div class="bar-config" title="EH-Page-Scrobbler settings">&#x2699;</div><div class="bar-min"></div>`;
+
         if (localStorage.getItem("EHPS-FullWidthBar") == "true") {
             scrobbler[0].style.width = "100%";
             scrobbler[0].querySelector(".bar").style.width = "100%";
@@ -564,6 +577,23 @@ ${yearDiv}
 
             scrobbler[1].style.width = null;
             scrobbler[1].querySelector(".bar").style.width = null;
+        }
+
+        if (localStorage.getItem("EHPS-HidePageScrobbler") == "true") {
+            let hidePageScrobblerType = localStorage.getItem("EHPS-HidePageScrobblerType") ?? 0;
+            document.querySelector('.search-scrobbler-altcfg').style.display = "none";
+
+            if ((hidePageScrobblerType == 0) || (hidePageScrobblerType == 2)) {
+                scrobbler[0].style.display = "none";
+                document.querySelector('.search-scrobbler-altcfg').style.display = "flex";
+            } else scrobbler[0].style.display = "";
+
+            if ((hidePageScrobblerType == 1) || (hidePageScrobblerType == 2)) scrobbler[1].style.display = "none";
+            else scrobbler[1].style.display = "";
+        } else {
+            document.querySelector('.search-scrobbler-altcfg').style.display = "none";
+            scrobbler[0].style.display = "";
+            scrobbler[1].style.display = "";
         }
     }
 
@@ -603,6 +633,10 @@ ${yearDiv}
 
         // config open button
         document.querySelector(".search-scrobbler .bar-config")?.addEventListener("click", function () {
+            document.querySelector(".search-scrobbler-config-bg").style.display = "block";
+        }, false);
+
+        document.querySelector(".search-scrobbler-altcfg .bar-config")?.addEventListener("click", function () {
             document.querySelector(".search-scrobbler-config-bg").style.display = "block";
         }, false);
     }
@@ -794,11 +828,36 @@ const updateConfig = () => {
       <input type="checkbox" id="search-scrobbler-config-disBookmark"><label for="search-scrobbler-config-disBookmark"> Disable bookmarks</label><br>
       <input type="checkbox" id="search-scrobbler-config-disPageinator"><label for="search-scrobbler-config-disPageinator"> Disable pages</label><br>
       <input type="checkbox" id="search-scrobbler-config-disMoveJump2Page"><label for="search-scrobbler-config-disMoveJump2Page"> Disable integration Jump/Seek into paginator</label><br>
+      <input type="checkbox" id="search-scrobbler-config-disPageScrobbler"><label for="search-scrobbler-config-disPageScrobbler"> Hide <select id="search-scrobbler-config-disPageScrobbler-type"></select> bar</label><br>
       <input type="checkbox" id="search-scrobbler-config-fullWidthBar"><label for="search-scrobbler-config-fullWidthBar"> Use full width for bar</label><br>
       <input type="checkbox" id="search-scrobbler-config-enlPageprefetch"><label for="search-scrobbler-config-enlPageprefetch"> Enable page prefetch (+/- <select id="search-scrobbler-config-enlPageprefetch-size"></select> pages)</label><br>
       <div style="padding: 2px 20px 2px 30px;color:red;font-weight:bold;">Be careful with prefetch as it creates a lot of page requests and the server will block you for some time if you reaches a certain limit in a timeframe</div>
     </div>
   </div>`;
+
+    let disPageScrobblerType = document.getElementById('search-scrobbler-config-disPageScrobbler-type');
+    let hidePageScrobblerType = localStorage.getItem("EHPS-HidePageScrobblerType") ?? 0;
+    for (let i = 0; i < 3; i++) {
+        let opt = document.createElement('option');
+        switch (i) {
+            case 0:
+                opt.text = "top";
+                break;
+            case 1:
+                opt.text = "bottom";
+                break;
+            case 2:
+                opt.text = "top and bottom";
+                break;
+            default:
+                opt.text = i;
+                break;
+        }
+        opt.value = i;
+        if (hidePageScrobblerType == i) opt.selected = true;
+
+        disPageScrobblerType.add(opt);
+    }
 
     let enlPageprefetchSize = document.getElementById('search-scrobbler-config-enlPageprefetch-size');
     let selSize = localStorage.getItem("EHPS-EnablePageinatorPrefetchSize") ?? defaultMaxPrefetch;
@@ -845,6 +904,16 @@ const updateConfig = () => {
         else location.reload();
     }, false);
 
+    document.getElementById("search-scrobbler-config-disPageScrobbler").addEventListener("click", function (e) {
+        localStorage.setItem("EHPS-HidePageScrobbler", e.target.checked);
+        updatePageScrobbler();
+    }, false);
+
+    document.getElementById("search-scrobbler-config-disPageScrobbler-type").addEventListener("change", function (e) {
+        localStorage.setItem("EHPS-HidePageScrobblerType", e.target.value);
+        updatePageScrobbler();
+    }, false);
+
     document.getElementById("search-scrobbler-config-fullWidthBar").addEventListener("click", function (e) {
         localStorage.setItem("EHPS-FullWidthBar", e.target.checked);
         updatePageScrobbler();
@@ -864,10 +933,10 @@ const updateConfig = () => {
         }
     }, false);
 
-
     if (localStorage.getItem("EHPS-DisableBookmark") == "true") document.getElementById("search-scrobbler-config-disBookmark").checked = true;
     if (localStorage.getItem("EHPS-DisablePageinator") == "true") document.getElementById("search-scrobbler-config-disPageinator").checked = true;
     if (localStorage.getItem("EHPS-DisableIntegrationJump2Page") == "true") document.getElementById("search-scrobbler-config-disMoveJump2Page").checked = true;
+    if (localStorage.getItem("EHPS-HidePageScrobbler") == "true") document.getElementById("search-scrobbler-config-disPageScrobbler").checked = true;
     if (localStorage.getItem("EHPS-FullWidthBar") == "true") document.getElementById("search-scrobbler-config-fullWidthBar").checked = true;
     if (localStorage.getItem("EHPS-EnablePageinatorPrefetch") == "true") document.getElementById("search-scrobbler-config-enlPageprefetch").checked = true;
 }
