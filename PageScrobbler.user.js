@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2023.01.01.01
+// @version      2023.01.19.01
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -296,6 +296,11 @@ const updatePageInfo = async () => {
 
         if (pageInfo.knownPages.min > window.currentPage + 1) pageInfo.knownPages.min = window.currentPage + 1;
         if (pageInfo.knownPages.max < window.currentPage + 1) pageInfo.knownPages.max = window.currentPage + 1;
+    } else {
+        // look if new or deleted entries have shifted the pages
+        if (pageInfo.knownPages[`P${window.currentPage + 1}`] != `${(new URL(document.querySelector("#unext").href)).search}`) {
+            pageInfo.knownPages[`P${window.currentPage + 1}`] = `${(new URL(document.querySelector("#unext").href)).search}`;
+        }
     }
 
     // look if previous page announced is known
@@ -304,6 +309,11 @@ const updatePageInfo = async () => {
 
         if (pageInfo.knownPages.min > window.currentPage - 1) pageInfo.knownPages.min = window.currentPage - 1;
         if (pageInfo.knownPages.max < window.currentPage - 1) pageInfo.knownPages.max = window.currentPage - 1;
+    } else {
+        // look if new or deleted entries have shifted the pages
+        if (pageInfo.knownPages[`P${window.currentPage - 1}`] != `${(new URL(document.querySelector("#uprev").href)).search}`) {
+            pageInfo.knownPages[`P${window.currentPage - 1}`] = `${(new URL(document.querySelector("#uprev").href)).search}`;
+        }
     }
 
     if (localStorage.getItem("EHPS-EnablePageinatorPrefetch") == "true") pageInfo = await prefetchPageInfo(pageInfo);
