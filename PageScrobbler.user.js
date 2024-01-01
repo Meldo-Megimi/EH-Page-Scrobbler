@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EH – Page Scrobbler
 // @namespace    https://github.com/Meldo-Megimi/EH-Page-Scrobbler/raw/main/PageScrobbler.user.js
-// @version      2023.01.19.02
+// @version      2024.01.01.01
 // @description  Visualize GID and add the ability to easily jump or scrobble
 // @author       FabulousCupcake, OsenTen, Qserty, Meldo-Megimi
 // @license      MIT
@@ -155,7 +155,8 @@ const gidYear = {
     1543397: 2019,
     1813647: 2020,
     2100270: 2021,
-    2419586: 2022
+    2419586: 2022,
+    2783947: 2023
 };
 
 const defaultMaxPrefetch = 5;
